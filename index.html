@@ -240,7 +240,7 @@
     }
     .btn-register:active { transform: scale(0.97); }
 
-    /* COLONNA 3: STORICO CON GESTIONE SESSIONI GIORNALIERE */
+    /* COLONNA 3: STORICO CON SESSIONI */
     .col-right {
       background: var(--bg-panel-right);
       display: flex;
@@ -547,7 +547,7 @@
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v5';
+      const CACHE_NAME = 'bet-terminal-v6';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -588,12 +588,10 @@
 
   let configRooms = JSON.parse(localStorage.getItem('bet_terminal_rooms') || JSON.stringify(DEFAULT_ROOMS));
   let currentTheme = localStorage.getItem('bet_terminal_theme') || 'dark';
-  
-  // GESTIONE ARCHIVIO GIORNATE E SESSIONI
   let archivedDays = JSON.parse(localStorage.getItem('bet_terminal_archived_days') || '[]');
   let activeSession = JSON.parse(localStorage.getItem('bet_terminal_active_session') || 'null');
 
-  // Retrocompatibilità da vecchio storico
+  // Recupero automatico storico versione precedente
   let oldHistory = JSON.parse(localStorage.getItem('bet_terminal_history') || '[]');
   if (oldHistory.length > 0 && !activeSession && archivedDays.length === 0) {
     activeSession = {
@@ -606,8 +604,7 @@
     saveSessions();
   }
 
-  // Se non c'è una sessione aperta o archiviata, ne creiamo una nuova
-  if (!activeSession) {
+  if (!activeSession && archivedDays.length === 0) {
     activeSession = {
       id: 'session_' + Date.now(),
       dateLabel: new Date().toLocaleDateString('it-IT'),
@@ -650,7 +647,6 @@
     saveAll();
   }
 
-  // GESTIONE NUOVA GIORNATA E CHIUDI GIORNATA
   function startNewSession() {
     if (activeSession && activeSession.status === 'open') {
       alert("C'è già una giornata aperta in corso!");
@@ -718,7 +714,7 @@
     if (activeSession) {
       const opt = document.createElement('option');
       opt.value = activeSession.id;
-      opt.textContent = `🟢 In Corso (${activeSession.dateLabel})`;
+      opt.textContent = `🟢 In Corso (${activeSession.dateLabel}) - ${activeSession.bets.length} bet`;
       sel.appendChild(opt);
     }
 
@@ -731,6 +727,9 @@
 
     if (selectedViewSessionId) {
       sel.value = selectedViewSessionId;
+    } else if (activeSession) {
+      sel.value = activeSession.id;
+      selectedViewSessionId = activeSession.id;
     }
   }
 
@@ -743,7 +742,7 @@
     if (activeSession && activeSession.id === selectedViewSessionId) {
       return activeSession;
     }
-    return archivedDays.find(d => d.id === selectedViewSessionId) || null;
+    return archivedDays.find(d => d.id === selectedViewSessionId) || activeSession || null;
   }
 
   // TEMA
@@ -932,7 +931,6 @@
     renderActiveTable();
   }
 
-  // APPLICA IMPORTO RAPIDO 50 O 100
   function setQuickStake(index, value) {
     activeEntries[index].stake = String(value);
     renderActiveTable();
@@ -1211,9 +1209,19 @@
     }
   }
 
-  // BACKUP COMPLETO JSON (INCLUDE SESSIONI E ARCHIVIO GIORNATE)
+  // BACKUP COMPLETO JSON UNIFICATO
   function exportDataJson() {
-    const exportBundle = { configRooms, archivedDays, activeSession, currentTheme };
+    const exportBundle = {
+      configRooms,
+      archivedDays,
+      activeSession,
+      currentTheme,
+      // Retrocompatibilità: includiamo un flattened delle bettate totali
+      historyBets: [
+        ...(activeSession ? activeSession.bets : []),
+        ...archivedDays.flatMap(d => d.bets)
+      ]
+    };
     const blob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1225,6 +1233,7 @@
     document.getElementById('importFileInput').click();
   }
 
+  // IMPORT DATI UNIVERSALE (RICONOSCE TUTTI I FORMATI)
   function importDataJson(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1233,23 +1242,63 @@
     reader.onload = function(e) {
       try {
         const imported = JSON.parse(e.target.result);
-        if (imported.configRooms) {
-          if (confirm("Caricare questo backup? Sostituirà la configurazione e le giornate archiviate.")) {
+        if (!imported) throw new Error("File vuoto");
+
+        if (confirm("Caricare questo backup? Sostituirà la configurazione, i conti e ripristinerà tutte le bettate.")) {
+          // 1. Ripristina Room & Conti
+          if (imported.configRooms && Array.isArray(imported.configRooms)) {
             configRooms = imported.configRooms;
-            archivedDays = imported.archivedDays || [];
-            activeSession = imported.activeSession || null;
-            if (imported.currentTheme) setAppTheme(imported.currentTheme);
-            saveAll();
-            updateSessionControls();
-            renderDaySelector();
-            renderTodayFeed();
-            alert("Backup caricato con successo!");
           }
-        } else {
-          alert("Formato file di backup non valido!");
+
+          // 2. Ripristina Tema
+          if (imported.currentTheme) {
+            setAppTheme(imported.currentTheme);
+          }
+
+          // 3. Ripristina Giornate e Bettate
+          if (imported.activeSession || imported.archivedDays) {
+            // Formato nuovo a sessioni
+            activeSession = imported.activeSession || null;
+            archivedDays = Array.isArray(imported.archivedDays) ? imported.archivedDays : [];
+          } else if (imported.historyBets && Array.isArray(imported.historyBets)) {
+            // Formato precedente (array singolo di bettate): raggruppa o crea sessione
+            activeSession = {
+              id: 'session_' + Date.now(),
+              dateLabel: new Date().toLocaleDateString('it-IT'),
+              bets: imported.historyBets,
+              status: 'open'
+            };
+            archivedDays = [];
+          }
+
+          // Se non c'è una sessione attiva dopo l'import, creane una vuota o punta alla prima archiviata
+          if (!activeSession && archivedDays.length > 0) {
+            selectedViewSessionId = archivedDays[0].id;
+          } else if (activeSession) {
+            selectedViewSessionId = activeSession.id;
+          } else {
+            activeSession = {
+              id: 'session_' + Date.now(),
+              dateLabel: new Date().toLocaleDateString('it-IT'),
+              bets: [],
+              status: 'open'
+            };
+            selectedViewSessionId = activeSession.id;
+          }
+
+          // 4. Salva e Ricarica completa della UI
+          saveAll();
+          renderRooms();
+          updateSessionControls();
+          renderDaySelector();
+          renderTodayFeed();
+
+          const totalBetsLoaded = (activeSession ? activeSession.bets.length : 0) + archivedDays.reduce((acc, d) => acc + d.bets.length, 0);
+          alert(`Backup caricato con successo!\nBettate ripristinate: ${totalBetsLoaded}`);
         }
       } catch (err) {
-        alert("Errore nella lettura del file JSON!");
+        alert("Errore nella lettura del file JSON! Assicurati che sia un file di backup valido esportato da Bet Terminal.");
+        console.error(err);
       }
       event.target.value = '';
     };
@@ -1274,7 +1323,6 @@
     a.click();
   }
 
-  // ESPORTA PDF DELLA GIORNATA SELEZIONATA (IN CORSO O ARCHIVIATA)
   function exportSelectedDayPdf() {
     const session = getSelectedSession();
     if (!session || !session.bets || session.bets.length === 0) {
