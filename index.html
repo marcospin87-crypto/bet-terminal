@@ -77,10 +77,9 @@
       flex-shrink: 0;
     }
     
-    /* GRIGLIA ADATTIVA */
     .main-grid {
       display: grid;
-      grid-template-columns: 240px minmax(0, 1fr) 300px;
+      grid-template-columns: 240px minmax(0, 1fr) 340px;
       flex: 1;
       overflow: hidden;
       transition: grid-template-columns 0.2s ease-in-out;
@@ -162,7 +161,7 @@
     
     .bet-row {
       display: grid;
-      grid-template-columns: minmax(110px, 1.4fr) minmax(90px, 1fr) minmax(80px, 0.9fr) minmax(90px, 1fr) 36px;
+      grid-template-columns: minmax(110px, 1.3fr) minmax(140px, 1.4fr) minmax(80px, 0.9fr) minmax(90px, 1fr) 34px;
       align-items: center;
       gap: 6px;
       background: var(--bg-row);
@@ -174,6 +173,23 @@
       border-right: 1px solid var(--border-color);
       border-bottom: 1px solid var(--border-color);
     }
+    .stake-box-container {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .btn-quick-stake {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 5px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-quick-stake:active { transform: scale(0.94); filter: brightness(1.2); }
     .num-inp {
       background: var(--bg-input);
       border: 1px solid var(--border-input);
@@ -187,7 +203,6 @@
     }
     .num-inp-quote { color: #eab308; }
 
-    /* TOTALI COMPATTI */
     .totals-bar {
       background: var(--bg-card);
       border-top: 1px solid var(--border-color);
@@ -225,7 +240,7 @@
     }
     .btn-register:active { transform: scale(0.97); }
 
-    /* COLONNA 3: STORICO */
+    /* COLONNA 3: STORICO CON GESTIONE SESSIONI GIORNALIERE */
     .col-right {
       background: var(--bg-panel-right);
       display: flex;
@@ -233,14 +248,31 @@
       overflow: hidden;
       min-width: 0;
     }
+    .session-control-panel {
+      padding: 8px 10px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
     .right-header {
-      padding: 10px;
+      padding: 6px 10px;
       background: var(--bg-card);
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
+    }
+    .day-selector-bar {
+      padding: 6px 10px;
+      background: var(--bg-panel-right);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 6px;
+      align-items: center;
     }
     .today-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
     .today-card {
@@ -294,7 +326,7 @@
     .btn-tool:hover { color: var(--text-main); border-color: var(--accent-primary); }
     .btn-del { background: transparent; border: none; color: #ef4444; font-size: 16px; cursor: pointer; padding: 2px 4px; }
 
-    /* MODAL GESTIONE */
+    /* MODAL */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -365,7 +397,6 @@
       <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importDataJson(event)">
       <button class="btn-tool" onclick="exportDataJson()">💾 Backup</button>
       <button class="btn-tool" onclick="exportDataCsv()">📊 CSV</button>
-      <button class="btn-tool" onclick="exportTodayPdf()" style="background:#ef4444; color:#fff; border-color:#dc2626; font-weight:700;">📄 PDF</button>
       <button class="btn-tool" id="btnToggleSidebar" onclick="toggleSidebar()" style="background:#334155; color:#fff; font-weight:bold;">◀ Storico</button>
     </div>
   </header>
@@ -414,22 +445,42 @@
       </div>
     </section>
 
+    <!-- COLONNA 3: REGISTRO BETTATE & ARCHIVIO GIORNATE -->
     <aside class="col-right" id="rightSidebar">
+      <!-- PANNELLO SESSIONE GIORNATA -->
+      <div class="session-control-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:var(--accent-primary);" id="activeSessionTitle">SESSIONE IN CORSO</span>
+          <div style="display:flex; gap:4px;">
+            <button class="btn-tool" id="btnStartNewDay" onclick="startNewSession()" style="background:#0284c7; color:#fff; display:none; padding:2px 6px;">+ Nuova Giornata</button>
+            <button class="btn-tool" id="btnCloseDay" onclick="closeCurrentSession()" style="background:#e11d48; color:#fff; font-weight:700; padding:2px 6px;">🔒 Chiudi Giornata</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SELETTORE GIORNATA VISUALIZZATA -->
+      <div class="day-selector-bar">
+        <span style="font-size:11px; font-weight:700; color:var(--text-muted);">Visualizza:</span>
+        <select id="selectDayView" class="dark-input" style="flex:1; padding:3px 6px; font-size:11px;" onchange="changeDayView(this.value)"></select>
+      </div>
+
       <div class="right-header">
         <div>
-          <div style="font-size:11px; font-weight:800;">REGISTRATE OGGI</div>
-          <div style="font-size:10px; color:var(--text-muted);" id="todayStats">0 bettate | € 0.00</div>
+          <div style="font-size:11px; font-weight:800;" id="viewStatsLabel">0 bettate | € 0.00</div>
         </div>
         <div style="display:flex; gap:4px;">
-          <button class="btn-tool" onclick="clearTodayHistory()" style="font-size:10px; padding:2px 5px;">Azzera</button>
+          <button class="btn-tool" onclick="exportSelectedDayPdf()" style="background:#ef4444; color:#fff; font-weight:bold; padding:2px 6px;">📄 PDF</button>
+          <button class="btn-tool" id="btnClearSessionBtn" onclick="clearCurrentSessionBets()" style="font-size:10px; padding:2px 5px;">Azzera</button>
           <button class="btn-tool" onclick="toggleSidebar()" style="font-size:11px; padding:2px 5px;">✕</button>
         </div>
       </div>
+
       <div class="today-list" id="todayFeed"></div>
     </aside>
   </main>
 </div>
 
+<!-- MODAL CONFIGURAZIONE -->
 <div class="modal-overlay" id="configModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -496,7 +547,7 @@
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v4';
+      const CACHE_NAME = 'bet-terminal-v5';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -525,7 +576,7 @@
     }
   });
 
-  // STATO
+  // STATO E DATI
   const DEFAULT_ROOMS = [
     { name: 'Betsson', color: '#ea580c', accounts: ['Betsson 1', 'Betsson 2', 'Betsson 3', 'Betsson 4'] },
     { name: 'Eplay24', color: '#dc2626', accounts: ['Eplay A', 'Eplay B', 'Eplay C'] },
@@ -536,8 +587,37 @@
   ];
 
   let configRooms = JSON.parse(localStorage.getItem('bet_terminal_rooms') || JSON.stringify(DEFAULT_ROOMS));
-  let historyBets = JSON.parse(localStorage.getItem('bet_terminal_history') || '[]');
   let currentTheme = localStorage.getItem('bet_terminal_theme') || 'dark';
+  
+  // GESTIONE ARCHIVIO GIORNATE E SESSIONI
+  let archivedDays = JSON.parse(localStorage.getItem('bet_terminal_archived_days') || '[]');
+  let activeSession = JSON.parse(localStorage.getItem('bet_terminal_active_session') || 'null');
+
+  // Retrocompatibilità da vecchio storico
+  let oldHistory = JSON.parse(localStorage.getItem('bet_terminal_history') || '[]');
+  if (oldHistory.length > 0 && !activeSession && archivedDays.length === 0) {
+    activeSession = {
+      id: 'session_' + Date.now(),
+      dateLabel: new Date().toLocaleDateString('it-IT'),
+      bets: oldHistory,
+      status: 'open'
+    };
+    localStorage.removeItem('bet_terminal_history');
+    saveSessions();
+  }
+
+  // Se non c'è una sessione aperta o archiviata, ne creiamo una nuova
+  if (!activeSession) {
+    activeSession = {
+      id: 'session_' + Date.now(),
+      dateLabel: new Date().toLocaleDateString('it-IT'),
+      bets: [],
+      status: 'open'
+    };
+    saveSessions();
+  }
+
+  let selectedViewSessionId = activeSession ? activeSession.id : (archivedDays[0]?.id || null);
   let activeEntries = [];
   let editingBetId = null;
   let expandedCardId = null;
@@ -547,7 +627,123 @@
     applyTheme(currentTheme);
     renderRooms();
     renderActiveTable();
+    updateSessionControls();
+    renderDaySelector();
     renderTodayFeed();
+  }
+
+  // SALVATAGGI
+  function saveSessions() {
+    localStorage.setItem('bet_terminal_archived_days', JSON.stringify(archivedDays));
+    localStorage.setItem('bet_terminal_active_session', JSON.stringify(activeSession));
+  }
+
+  function saveAll() {
+    saveSessions();
+    localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
+  }
+
+  function saveRooms() {
+    localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
+    renderRooms();
+    renderModalList();
+    saveAll();
+  }
+
+  // GESTIONE NUOVA GIORNATA E CHIUDI GIORNATA
+  function startNewSession() {
+    if (activeSession && activeSession.status === 'open') {
+      alert("C'è già una giornata aperta in corso!");
+      return;
+    }
+    const todayStr = new Date().toLocaleDateString('it-IT');
+    activeSession = {
+      id: 'session_' + Date.now(),
+      dateLabel: todayStr,
+      bets: [],
+      status: 'open'
+    };
+    selectedViewSessionId = activeSession.id;
+    saveSessions();
+    updateSessionControls();
+    renderDaySelector();
+    renderTodayFeed();
+  }
+
+  function closeCurrentSession() {
+    if (!activeSession || activeSession.bets.length === 0) {
+      if (!confirm("La giornata in corso non ha bettate registrate. Vuoi chiuderla comunque?")) return;
+    } else {
+      if (!confirm(`Sei sicuro di voler chiudere la giornata di ${activeSession.dateLabel}? Verrà archiviata nello storico consultabile.`)) return;
+    }
+
+    activeSession.status = 'closed';
+    activeSession.closedAt = new Date().toISOString();
+    archivedDays.unshift(activeSession);
+    const closedId = activeSession.id;
+    activeSession = null;
+    selectedViewSessionId = closedId;
+
+    saveSessions();
+    updateSessionControls();
+    renderDaySelector();
+    renderTodayFeed();
+  }
+
+  function updateSessionControls() {
+    const title = document.getElementById('activeSessionTitle');
+    const btnNew = document.getElementById('btnStartNewDay');
+    const btnClose = document.getElementById('btnCloseDay');
+    const btnClear = document.getElementById('btnClearSessionBtn');
+
+    if (activeSession && activeSession.status === 'open') {
+      title.textContent = `SESSIONE IN CORSO (${activeSession.dateLabel})`;
+      title.style.color = 'var(--accent-primary)';
+      btnNew.style.display = 'none';
+      btnClose.style.display = 'inline-block';
+      btnClear.style.display = 'inline-block';
+    } else {
+      title.textContent = `NESSUNA GIORNATA IN CORSO`;
+      title.style.color = '#ef4444';
+      btnNew.style.display = 'inline-block';
+      btnClose.style.display = 'none';
+      btnClear.style.display = 'none';
+    }
+  }
+
+  function renderDaySelector() {
+    const sel = document.getElementById('selectDayView');
+    sel.innerHTML = '';
+
+    if (activeSession) {
+      const opt = document.createElement('option');
+      opt.value = activeSession.id;
+      opt.textContent = `🟢 In Corso (${activeSession.dateLabel})`;
+      sel.appendChild(opt);
+    }
+
+    archivedDays.forEach(day => {
+      const opt = document.createElement('option');
+      opt.value = day.id;
+      opt.textContent = `📁 ${day.dateLabel} (${day.bets.length} bet)`;
+      sel.appendChild(opt);
+    });
+
+    if (selectedViewSessionId) {
+      sel.value = selectedViewSessionId;
+    }
+  }
+
+  function changeDayView(sessionId) {
+    selectedViewSessionId = sessionId;
+    renderTodayFeed();
+  }
+
+  function getSelectedSession() {
+    if (activeSession && activeSession.id === selectedViewSessionId) {
+      return activeSession;
+    }
+    return archivedDays.find(d => d.id === selectedViewSessionId) || null;
   }
 
   // TEMA
@@ -585,13 +781,7 @@
     }
   }
 
-  function saveRooms() {
-    localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
-    renderRooms();
-    renderModalList();
-    saveAll();
-  }
-
+  // ROOMS
   function renderRooms() {
     const cont = document.getElementById('roomsList');
     cont.innerHTML = '';
@@ -738,8 +928,13 @@
   }
 
   function removeAccount(id) {
-    // Rimuove la riga sia in modalità normale che in modalità Edit
     activeEntries = activeEntries.filter(e => String(e.id) !== String(id));
+    renderActiveTable();
+  }
+
+  // APPLICA IMPORTO RAPIDO 50 O 100
+  function setQuickStake(index, value) {
+    activeEntries[index].stake = String(value);
     renderActiveTable();
   }
 
@@ -758,8 +953,10 @@
           <div style="font-weight:800; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${entry.account}</div>
           <div style="font-size:10px; color:${entry.color};">${entry.room}</div>
         </div>
-        <div>
-          <input type="number" step="1" class="num-inp num-inp-stake" placeholder="Importo €" value="${entry.stake}" oninput="updateVal(${idx}, 'stake', this.value)">
+        <div class="stake-box-container">
+          <input type="number" step="1" class="num-inp num-inp-stake" placeholder="€" value="${entry.stake}" oninput="updateVal(${idx}, 'stake', this.value)">
+          <button type="button" class="btn-quick-stake" onclick="setQuickStake(${idx}, 50)">50</button>
+          <button type="button" class="btn-quick-stake" onclick="setQuickStake(${idx}, 100)">100</button>
         </div>
         <div>
           <input type="number" step="0.01" class="num-inp num-inp-quote" placeholder="Quota @" value="${entry.odds}" oninput="updateVal(${idx}, 'odds', this.value)">
@@ -814,13 +1011,16 @@
     renderActiveTable();
   }
 
-  // GESTIONE SVUOTA / ELIMINA IN EDIT
   function handleClearOrDelete() {
     if (editingBetId) {
-      if (confirm("Vuoi eliminare definitivamente questa bettata registrata?")) {
-        historyBets = historyBets.filter(b => b.id !== editingBetId);
-        saveAll();
-        renderTodayFeed();
+      if (confirm("Vuoi eliminare definitivamente questa bettata?")) {
+        const session = getSelectedSession();
+        if (session) {
+          session.bets = session.bets.filter(b => b.id !== editingBetId);
+          saveSessions();
+          renderTodayFeed();
+          renderDaySelector();
+        }
         clearCurrentBet();
       }
     } else {
@@ -830,14 +1030,15 @@
 
   function startEditBet(betId, e) {
     if (e) e.stopPropagation();
-    const bet = historyBets.find(b => b.id === betId);
+    const session = getSelectedSession();
+    if (!session) return;
+    const bet = session.bets.find(b => b.id === betId);
     if (!bet) return;
 
     editingBetId = bet.id;
     document.getElementById('matchInput').value = bet.match;
     document.getElementById('marketInput').value = bet.market;
     
-    // Assegna sempre un ID univoco a ogni conto per consentire l'eliminazione delle righe
     activeEntries = bet.entries.map((item, i) => ({
       ...item,
       id: item.id || (Date.now() + i + Math.random())
@@ -871,7 +1072,9 @@
 
   function deleteSingleBet(betId, e) {
     if (e) e.stopPropagation();
-    const bet = historyBets.find(b => b.id === betId);
+    const session = getSelectedSession();
+    if (!session) return;
+    const bet = session.bets.find(b => b.id === betId);
     if (!bet) return;
 
     if (confirm(`Vuoi eliminare definitivamente la bettata "${bet.match}"?`)) {
@@ -879,14 +1082,24 @@
         cancelEditMode();
         clearCurrentBet();
       }
-      historyBets = historyBets.filter(b => b.id !== betId);
-      saveAll();
+      session.bets = session.bets.filter(b => b.id !== betId);
+      saveSessions();
       renderTodayFeed();
+      renderDaySelector();
     }
   }
 
   function registerBet() {
     if (activeEntries.length === 0) return;
+    
+    if (!activeSession || activeSession.status !== 'open') {
+      if (confirm("Nessuna giornata aperta al momento. Vuoi aprire una Nuova Giornata per registrare la giocata?")) {
+        startNewSession();
+      } else {
+        return;
+      }
+    }
+
     let totStake = 0, totReturn = 0;
     activeEntries.forEach(e => {
       const s = parseFloat(e.stake) || 0;
@@ -896,14 +1109,17 @@
     });
 
     if (editingBetId) {
-      const bIndex = historyBets.findIndex(b => b.id === editingBetId);
-      if (bIndex !== -1) {
-        historyBets[bIndex].match = document.getElementById('matchInput').value.trim() || 'Match Senza Nome';
-        historyBets[bIndex].market = document.getElementById('marketInput').value.trim() || 'Esito';
-        historyBets[bIndex].totalStake = totStake;
-        historyBets[bIndex].weightedOdds = totStake > 0 ? (totReturn / totStake) : 0;
-        historyBets[bIndex].totalReturn = totReturn;
-        historyBets[bIndex].entries = JSON.parse(JSON.stringify(activeEntries));
+      const session = getSelectedSession();
+      if (session) {
+        const bIndex = session.bets.findIndex(b => b.id === editingBetId);
+        if (bIndex !== -1) {
+          session.bets[bIndex].match = document.getElementById('matchInput').value.trim() || 'Match Senza Nome';
+          session.bets[bIndex].market = document.getElementById('marketInput').value.trim() || 'Esito';
+          session.bets[bIndex].totalStake = totStake;
+          session.bets[bIndex].weightedOdds = totStake > 0 ? (totReturn / totStake) : 0;
+          session.bets[bIndex].totalReturn = totReturn;
+          session.bets[bIndex].entries = JSON.parse(JSON.stringify(activeEntries));
+        }
       }
       cancelEditMode();
     } else {
@@ -917,11 +1133,13 @@
         totalReturn: totReturn,
         entries: JSON.parse(JSON.stringify(activeEntries))
       };
-      historyBets.unshift(record);
+      activeSession.bets.unshift(record);
+      selectedViewSessionId = activeSession.id;
     }
 
-    saveAll();
+    saveSessions();
     clearCurrentBet();
+    renderDaySelector();
     renderTodayFeed();
   }
 
@@ -933,14 +1151,19 @@
   function renderTodayFeed() {
     const cont = document.getElementById('todayFeed');
     cont.innerHTML = '';
-    const today = new Date().toISOString().split('T')[0];
-    const todayBets = historyBets.filter(b => b.date.startsWith(today));
+
+    const session = getSelectedSession();
+    if (!session || !session.bets || session.bets.length === 0) {
+      document.getElementById('viewStatsLabel').textContent = '0 bettate | € 0.00';
+      cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:20px;">Nessuna bettata in questa giornata</div>`;
+      return;
+    }
 
     let dayStake = 0;
-    todayBets.forEach(b => dayStake += b.totalStake);
-    document.getElementById('todayStats').textContent = `${todayBets.length} bettate | € ${dayStake.toFixed(2)}`;
+    session.bets.forEach(b => dayStake += b.totalStake);
+    document.getElementById('viewStatsLabel').textContent = `${session.bets.length} bettate | € ${dayStake.toFixed(2)}`;
 
-    todayBets.forEach(b => {
+    session.bets.forEach(b => {
       const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       const isExpanded = (expandedCardId === b.id);
       const card = document.createElement('div');
@@ -977,27 +1200,24 @@
     });
   }
 
-  function clearTodayHistory() {
-    if (confirm("Vuoi azzerare lo storico registrato oggi?")) {
-      const today = new Date().toISOString().split('T')[0];
-      historyBets = historyBets.filter(b => !b.date.startsWith(today));
-      saveAll();
+  function clearCurrentSessionBets() {
+    const session = getSelectedSession();
+    if (!session) return;
+    if (confirm(`Vuoi azzerare tutte le bettate registrate per la giornata selezionata (${session.dateLabel})?`)) {
+      session.bets = [];
+      saveSessions();
       renderTodayFeed();
+      renderDaySelector();
     }
   }
 
-  function saveAll() {
-    localStorage.setItem('bet_terminal_history', JSON.stringify(historyBets));
-    localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
-  }
-
-  // IMPORT/EXPORT BACKUP
+  // BACKUP COMPLETO JSON (INCLUDE SESSIONI E ARCHIVIO GIORNATE)
   function exportDataJson() {
-    const exportBundle = { configRooms, historyBets, currentTheme };
+    const exportBundle = { configRooms, archivedDays, activeSession, currentTheme };
     const blob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `backup_bettate_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `backup_terminal_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
   }
 
@@ -1013,12 +1233,15 @@
     reader.onload = function(e) {
       try {
         const imported = JSON.parse(e.target.result);
-        if (imported.configRooms && imported.historyBets) {
-          if (confirm("Caricare questo backup? Sostituirà la configurazione e aggiungerà lo storico.")) {
+        if (imported.configRooms) {
+          if (confirm("Caricare questo backup? Sostituirà la configurazione e le giornate archiviate.")) {
             configRooms = imported.configRooms;
-            historyBets = imported.historyBets;
+            archivedDays = imported.archivedDays || [];
+            activeSession = imported.activeSession || null;
             if (imported.currentTheme) setAppTheme(imported.currentTheme);
-            saveRooms();
+            saveAll();
+            updateSessionControls();
+            renderDaySelector();
             renderTodayFeed();
             alert("Backup caricato con successo!");
           }
@@ -1034,25 +1257,28 @@
   }
 
   function exportDataCsv() {
-    let csv = "Data;Match;Pronostico;ImportoTotale;QuotaPonderata;RitornoTotale;DettaglioConti\n";
-    historyBets.forEach(b => {
+    const session = getSelectedSession();
+    if (!session || !session.bets || session.bets.length === 0) {
+      alert("Nessuna bettata nella giornata selezionata da esportare in CSV!");
+      return;
+    }
+    let csv = "Giornata;DataOra;Match;Pronostico;ImportoTotale;QuotaPonderata;RitornoTotale;DettaglioConti\n";
+    session.bets.forEach(b => {
       const contiStr = b.entries.map(e => `${e.account}(${e.stake}€@${e.odds})`).join(" | ");
-      csv += `"${b.date}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${b.totalReturn}";"${contiStr}"\n`;
+      csv += `"${session.dateLabel}";"${b.date}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${b.totalReturn}";"${contiStr}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `report_bettate_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `report_${session.dateLabel.replace(/\//g, '-')}.csv`;
     a.click();
   }
 
-  // PDF
-  function exportTodayPdf() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayBets = historyBets.filter(b => b.date.startsWith(today));
-
-    if (todayBets.length === 0) {
-      alert("Nessuna bettata registrata oggi da esportare!");
+  // ESPORTA PDF DELLA GIORNATA SELEZIONATA (IN CORSO O ARCHIVIATA)
+  function exportSelectedDayPdf() {
+    const session = getSelectedSession();
+    if (!session || !session.bets || session.bets.length === 0) {
+      alert("Nessuna bettata presente nella giornata selezionata per il PDF!");
       return;
     }
 
@@ -1062,19 +1288,19 @@
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, 210, 24, 'F');
     doc.setTextColor(56, 189, 248);
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
     doc.text("BET TERMINAL - RESOCONTO GIORNALIERO", 14, 15);
 
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
-    doc.text(`Data: ${today}`, 165, 15);
+    doc.text(`Giornata: ${session.dateLabel}`, 155, 15);
 
     let startY = 32;
     let dayTotalStake = 0;
     let dayTotalReturn = 0;
 
-    todayBets.forEach((b, index) => {
+    session.bets.forEach((b, index) => {
       dayTotalStake += b.totalStake;
       dayTotalReturn += b.totalReturn;
 
@@ -1087,7 +1313,7 @@
       doc.setFillColor(241, 245, 249);
       doc.rect(14, startY, 182, 8, 'F');
       doc.setTextColor(15, 23, 42);
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.text(`#${index + 1}  ${b.match} - [${b.market}] (${time})`, 16, startY + 5.5);
 
@@ -1113,8 +1339,8 @@
         head: [['Conto', 'Room', 'Importo', 'Quota', 'Ritorno Potenziale']],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-        bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59] },
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+        bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
         styles: { cellPadding: 2 },
         margin: { left: 14, right: 14 }
       });
@@ -1133,7 +1359,7 @@
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("RIEPILOGO GENERALE GIORNATA:", 18, startY + 8);
+    doc.text(`RIEPILOGO GIORNATA (${session.dateLabel}):`, 18, startY + 8);
     
     doc.setTextColor(56, 189, 248);
     doc.text(`Totale Puntato: € ${dayTotalStake.toFixed(2)}`, 18, startY + 15);
@@ -1142,7 +1368,7 @@
     doc.setTextColor(74, 222, 128);
     doc.text(`Profitto Netto: € ${netProfit.toFixed(2)}`, 150, startY + 15);
 
-    doc.save(`Resoconto_Bettate_${today}.pdf`);
+    doc.save(`Resoconto_${session.dateLabel.replace(/\//g, '-')}.pdf`);
   }
 
   init();
