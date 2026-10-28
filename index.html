@@ -77,7 +77,7 @@
       flex-shrink: 0;
     }
     
-    /* GRIGLIA ADATTIVA OTTIMIZZATA PER COMPILAZIONE CENTRALE */
+    /* GRIGLIA ADATTIVA */
     .main-grid {
       display: grid;
       grid-template-columns: 240px minmax(0, 1fr) 300px;
@@ -187,7 +187,7 @@
     }
     .num-inp-quote { color: #eab308; }
 
-    /* TOTALI COMPATTI PER RIMANERE INTEGRALI */
+    /* TOTALI COMPATTI */
     .totals-bar {
       background: var(--bg-card);
       border-top: 1px solid var(--border-color);
@@ -386,7 +386,7 @@
         <input type="text" id="marketInput" class="dark-input" style="flex:1.2;" placeholder="Pronostico (es: Over 2.5)" autocomplete="off">
         <button class="btn-tool" onclick="setEqualOdds()">= Quota</button>
         <button class="btn-tool" id="btnCancelEdit" onclick="cancelEditMode()" style="display:none; color:#eab308;">Annulla</button>
-        <button class="btn-tool" onclick="clearCurrentBet()" style="color:#ef4444;">Svuota</button>
+        <button class="btn-tool" id="btnClearOrDelete" onclick="handleClearOrDelete()" style="color:#ef4444;">Svuota</button>
       </div>
 
       <div class="table-container">
@@ -437,7 +437,7 @@
       <button class="btn-del" onclick="closeConfigModal()" style="font-size:18px;">✕</button>
     </div>
     <div class="modal-body">
-      <!-- SEZIONE TEMA -->
+      <!-- TEMA -->
       <div class="manage-section">
         <h4>1. Aspetto e Tema</h4>
         <div style="display:flex; gap:12px; align-items:center;">
@@ -447,7 +447,7 @@
         </div>
       </div>
 
-      <!-- SEZIONE ROOMS -->
+      <!-- ROOMS -->
       <div class="manage-section">
         <h4>2. Aggiungi Nuova Room</h4>
         <div style="display:flex; gap:8px;">
@@ -457,7 +457,7 @@
         </div>
       </div>
 
-      <!-- SEZIONE ACCOUNT -->
+      <!-- ACCOUNT -->
       <div class="manage-section">
         <h4>3. Aggiungi Account a una Room</h4>
         <div style="display:flex; gap:8px;">
@@ -467,7 +467,7 @@
         </div>
       </div>
 
-      <!-- MODIFICA DIRETTA -->
+      <!-- MODIFICA -->
       <div class="manage-section">
         <h4>4. Modifica Diretta Nomi, Colori e Account Esistenti</h4>
         <div id="modalRoomsList" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;"></div>
@@ -496,7 +496,7 @@
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v3';
+      const CACHE_NAME = 'bet-terminal-v4';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -525,7 +525,7 @@
     }
   });
 
-  // STATO E DATI
+  // STATO
   const DEFAULT_ROOMS = [
     { name: 'Betsson', color: '#ea580c', accounts: ['Betsson 1', 'Betsson 2', 'Betsson 3', 'Betsson 4'] },
     { name: 'Eplay24', color: '#dc2626', accounts: ['Eplay A', 'Eplay B', 'Eplay C'] },
@@ -550,7 +550,7 @@
     renderTodayFeed();
   }
 
-  // GESTIONE TEMA
+  // TEMA
   function setAppTheme(theme) {
     currentTheme = theme;
     localStorage.setItem('bet_terminal_theme', theme);
@@ -569,7 +569,7 @@
     }
   }
 
-  // GESTIONE SIDEBAR
+  // SIDEBAR
   function toggleSidebar() {
     const grid = document.getElementById('mainGridContainer');
     const btn = document.getElementById('btnToggleSidebar');
@@ -738,7 +738,8 @@
   }
 
   function removeAccount(id) {
-    activeEntries = activeEntries.filter(e => e.id !== id);
+    // Rimuove la riga sia in modalità normale che in modalità Edit
+    activeEntries = activeEntries.filter(e => String(e.id) !== String(id));
     renderActiveTable();
   }
 
@@ -767,7 +768,7 @@
           R: € ${((parseFloat(entry.stake) || 0) * (parseFloat(entry.odds) || 0)).toFixed(2)}
         </div>
         <div style="text-align:center;">
-          <button class="btn-del" onclick="removeAccount(${entry.id})">✕</button>
+          <button class="btn-del" onclick="removeAccount('${entry.id}')" title="Rimuovi conto">✕</button>
         </div>
       `;
       cont.appendChild(row);
@@ -813,6 +814,20 @@
     renderActiveTable();
   }
 
+  // GESTIONE SVUOTA / ELIMINA IN EDIT
+  function handleClearOrDelete() {
+    if (editingBetId) {
+      if (confirm("Vuoi eliminare definitivamente questa bettata registrata?")) {
+        historyBets = historyBets.filter(b => b.id !== editingBetId);
+        saveAll();
+        renderTodayFeed();
+        clearCurrentBet();
+      }
+    } else {
+      clearCurrentBet();
+    }
+  }
+
   function startEditBet(betId, e) {
     if (e) e.stopPropagation();
     const bet = historyBets.find(b => b.id === betId);
@@ -821,10 +836,19 @@
     editingBetId = bet.id;
     document.getElementById('matchInput').value = bet.match;
     document.getElementById('marketInput').value = bet.market;
-    activeEntries = JSON.parse(JSON.stringify(bet.entries));
+    
+    // Assegna sempre un ID univoco a ogni conto per consentire l'eliminazione delle righe
+    activeEntries = bet.entries.map((item, i) => ({
+      ...item,
+      id: item.id || (Date.now() + i + Math.random())
+    }));
 
     document.getElementById('editingTag').style.display = 'inline-flex';
     document.getElementById('btnCancelEdit').style.display = 'inline-block';
+    
+    const clearBtn = document.getElementById('btnClearOrDelete');
+    clearBtn.textContent = 'Elimina Bettata';
+    
     const submitBtn = document.getElementById('btnSubmitBet');
     submitBtn.textContent = 'AGGIORNA ✓';
     submitBtn.classList.add('edit-mode');
@@ -836,12 +860,15 @@
     editingBetId = null;
     document.getElementById('editingTag').style.display = 'none';
     document.getElementById('btnCancelEdit').style.display = 'none';
+    
+    const clearBtn = document.getElementById('btnClearOrDelete');
+    clearBtn.textContent = 'Svuota';
+    
     const submitBtn = document.getElementById('btnSubmitBet');
     submitBtn.textContent = 'REGISTRA ↵';
     submitBtn.classList.remove('edit-mode');
   }
 
-  // ELIMINA B換えTATA REGISTRATA DALLO STORICO
   function deleteSingleBet(betId, e) {
     if (e) e.stopPropagation();
     const bet = historyBets.find(b => b.id === betId);
