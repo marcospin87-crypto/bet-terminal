@@ -360,6 +360,7 @@
     .modal-body { padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
     .manage-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; }
     .manage-section h4 { font-size: 12px; color: var(--accent-primary); margin-bottom: 8px; text-transform: uppercase; font-weight: 800; }
+    
     .acc-tag-editable {
       display: inline-flex;
       align-items: center;
@@ -380,6 +381,27 @@
       outline: none;
     }
     .acc-tag-editable button { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; margin-left: 4px; }
+
+    /* FAST BET TAG SELECTOR */
+    .fast-acc-pill {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .fast-acc-pill.selected {
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -391,6 +413,7 @@
       <span id="backupStatus" style="font-size:10px; color:#10b981; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">● AUTO-SAVE</span>
     </div>
     <div style="display:flex; gap:6px; align-items:center;">
+      <button class="btn-tool" onclick="openFastBetModal()" style="background:#eab308; color:#0f172a; font-weight:900; border-color:#ca8a04;">⚡ Fast Bet</button>
       <button id="btnPwaInstall" class="btn-tool" style="display:none; background:#10b981; color:#fff; font-weight:bold; border-color:#059669;">📲 Installa</button>
       <button class="btn-tool" onclick="openConfigModal()" style="background:#2563eb; color:#fff; border-color:#3b82f6;">⚙️ Opzioni & Conti</button>
       <button class="btn-tool" onclick="triggerImportJson()">📥 Carica</button>
@@ -480,6 +503,50 @@
   </main>
 </div>
 
+<!-- MODAL FAST BET -->
+<div class="modal-overlay" id="fastBetModal">
+  <div class="modal-content" style="width: 580px;">
+    <div class="modal-header" style="background:#eab30822; border-bottom:1px solid #eab30844;">
+      <span style="color:#facc15; display:flex; align-items:center; gap:6px;">⚡ FAST BET - REGISTRAZIONE VELOCE</span>
+      <button class="btn-del" onclick="closeFastBetModal()" style="font-size:18px;">✕</button>
+    </div>
+    <div class="modal-body" style="gap:12px;">
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="fastMatch" class="dark-input" placeholder="Nome Match (es: Roma - Lazio)" style="flex:2;" autocomplete="off">
+        <input type="text" id="fastMarket" class="dark-input" placeholder="Pronostico (es: 1X)" style="flex:1.2;" autocomplete="off">
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background:var(--bg-card); padding:10px; border-radius:8px; border:1px solid var(--border-color);">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--accent-primary); display:block; margin-bottom:4px;">IMPORTO TOTALE (€)</label>
+          <input type="number" step="1" id="fastTotStake" class="dark-input" placeholder="Es: 300" style="width:100%; font-size:16px; font-weight:800;" oninput="updateFastPreview()">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#eab308; display:block; margin-bottom:4px;">QUOTA TOTALE (@)</label>
+          <input type="number" step="0.01" id="fastTotOdds" class="dark-input" placeholder="Es: 1.80" style="width:100%; font-size:16px; font-weight:800;" oninput="updateFastPreview()">
+        </div>
+      </div>
+
+      <div class="manage-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h4 style="margin:0;">Seleziona i Conti Usati:</h4>
+          <span style="font-size:11px; color:var(--text-muted);" id="fastSelectedCount">0 conti selezionati</span>
+        </div>
+        <div id="fastAccountsContainer" style="display:flex; flex-wrap:wrap; gap:6px; max-height:160px; overflow-y:auto; padding:4px;"></div>
+      </div>
+
+      <div id="fastPreviewBox" style="background:var(--bg-input); padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="color:var(--text-muted);">Ripartizione: <b id="fastSplitInfo" style="color:var(--text-main);">€ 0.00 per conto</b></span>
+        <span style="color:#10b981; font-weight:800;">Ritorno: <span id="fastTotReturn">€ 0.00</span></span>
+      </div>
+
+      <button class="btn-register" onclick="submitFastBet()" style="background:#eab308; color:#0f172a; font-size:14px; height:44px;">
+        REGISTRA FAST BET ↵
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIGURAZIONE -->
 <div class="modal-overlay" id="configModal">
   <div class="modal-content">
@@ -547,7 +614,7 @@
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v6';
+      const CACHE_NAME = 'bet-terminal-v7';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -591,7 +658,7 @@
   let archivedDays = JSON.parse(localStorage.getItem('bet_terminal_archived_days') || '[]');
   let activeSession = JSON.parse(localStorage.getItem('bet_terminal_active_session') || 'null');
 
-  // Recupero automatico storico versione precedente
+  // Recupero storico vecchio se esistente
   let oldHistory = JSON.parse(localStorage.getItem('bet_terminal_history') || '[]');
   if (oldHistory.length > 0 && !activeSession && archivedDays.length === 0) {
     activeSession = {
@@ -619,6 +686,9 @@
   let editingBetId = null;
   let expandedCardId = null;
   let isSidebarOpen = true;
+
+  // FAST BET STATE
+  let fastSelectedAccounts = [];
 
   function init() {
     applyTheme(currentTheme);
@@ -670,7 +740,7 @@
     if (!activeSession || activeSession.bets.length === 0) {
       if (!confirm("La giornata in corso non ha bettate registrate. Vuoi chiuderla comunque?")) return;
     } else {
-      if (!confirm(`Sei sicuro di voler chiudere la giornata di ${activeSession.dateLabel}? Verrà archiviata nello storico consultabile.`)) return;
+      if (!confirm(`Sei sicuro di voler chiudere la giornata di ${activeSession.dateLabel}? Verrà archiviata nello storico.`)) return;
     }
 
     activeSession.status = 'closed';
@@ -916,6 +986,7 @@
     }
   }
 
+  // LOGICA BET STANDARD
   function addAccountToBet(room, account, color) {
     if (activeEntries.some(e => e.account === account)) return;
     activeEntries.push({ id: Date.now() + Math.random(), room, account, color, stake: '', odds: '' });
@@ -1129,7 +1200,8 @@
         totalStake: totStake,
         weightedOdds: totStake > 0 ? (totReturn / totStake) : 0,
         totalReturn: totReturn,
-        entries: JSON.parse(JSON.stringify(activeEntries))
+        entries: JSON.parse(JSON.stringify(activeEntries)),
+        isFast: false
       };
       activeSession.bets.unshift(record);
       selectedViewSessionId = activeSession.id;
@@ -1141,6 +1213,115 @@
     renderTodayFeed();
   }
 
+  // LOGICA FAST BET
+  function openFastBetModal() {
+    fastSelectedAccounts = [];
+    document.getElementById('fastMatch').value = '';
+    document.getElementById('fastMarket').value = '';
+    document.getElementById('fastTotStake').value = '';
+    document.getElementById('fastTotOdds').value = '';
+    renderFastAccountSelector();
+    updateFastPreview();
+    document.getElementById('fastBetModal').style.display = 'flex';
+  }
+
+  function closeFastBetModal() {
+    document.getElementById('fastBetModal').style.display = 'none';
+  }
+
+  function renderFastAccountSelector() {
+    const cont = document.getElementById('fastAccountsContainer');
+    cont.innerHTML = '';
+    configRooms.forEach(room => {
+      room.accounts.forEach(acc => {
+        const isSelected = fastSelectedAccounts.some(a => a.account === acc);
+        const pill = document.createElement('div');
+        pill.className = `fast-acc-pill ${isSelected ? 'selected' : ''}`;
+        if (isSelected) {
+          pill.style.background = room.color + '44';
+          pill.style.borderColor = room.color;
+        }
+        pill.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:${room.color}; display:inline-block;"></span> ${acc}`;
+        pill.onclick = () => toggleFastAccount(room.name, acc, room.color);
+        cont.appendChild(pill);
+      });
+    });
+    document.getElementById('fastSelectedCount').textContent = `${fastSelectedAccounts.length} conti selezionati`;
+  }
+
+  function toggleFastAccount(room, account, color) {
+    const idx = fastSelectedAccounts.findIndex(a => a.account === account);
+    if (idx !== -1) {
+      fastSelectedAccounts.splice(idx, 1);
+    } else {
+      fastSelectedAccounts.push({ room, account, color });
+    }
+    renderFastAccountSelector();
+    updateFastPreview();
+  }
+
+  function updateFastPreview() {
+    const stake = parseFloat(document.getElementById('fastTotStake').value) || 0;
+    const odds = parseFloat(document.getElementById('fastTotOdds').value) || 0;
+    const count = fastSelectedAccounts.length;
+
+    const split = count > 0 ? (stake / count) : 0;
+    const totReturn = stake * odds;
+
+    document.getElementById('fastSplitInfo').textContent = `€ ${split.toFixed(2)} su ${count} conti`;
+    document.getElementById('fastTotReturn').textContent = `€ ${totReturn.toFixed(2)}`;
+  }
+
+  function submitFastBet() {
+    const match = document.getElementById('fastMatch').value.trim() || 'Fast Bet';
+    const market = document.getElementById('fastMarket').value.trim() || 'Esito Rapido';
+    const stake = parseFloat(document.getElementById('fastTotStake').value) || 0;
+    const odds = parseFloat(document.getElementById('fastTotOdds').value) || 0;
+
+    if (stake <= 0) return alert("Inserisci un importo totale valido!");
+    if (odds <= 0) return alert("Inserisci una quota valida!");
+    if (fastSelectedAccounts.length === 0) return alert("Seleziona almeno un account per la Fast Bet!");
+
+    if (!activeSession || activeSession.status !== 'open') {
+      if (confirm("Nessuna giornata aperta al momento. Vuoi aprire una Nuova Giornata per registrare la Fast Bet?")) {
+        startNewSession();
+      } else {
+        return;
+      }
+    }
+
+    const splitStake = parseFloat((stake / fastSelectedAccounts.length).toFixed(2));
+    const entries = fastSelectedAccounts.map(a => ({
+      id: Date.now() + Math.random(),
+      room: a.room,
+      account: a.account,
+      color: a.color,
+      stake: splitStake,
+      odds: odds
+    }));
+
+    const record = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      match: match,
+      market: market,
+      totalStake: stake,
+      weightedOdds: odds,
+      totalReturn: stake * odds,
+      entries: entries,
+      isFast: true
+    };
+
+    activeSession.bets.unshift(record);
+    selectedViewSessionId = activeSession.id;
+
+    saveSessions();
+    renderDaySelector();
+    renderTodayFeed();
+    closeFastBetModal();
+  }
+
+  // FEED STORICO
   function toggleCardExpand(betId) {
     expandedCardId = (expandedCardId === betId) ? null : betId;
     renderTodayFeed();
@@ -1177,7 +1358,10 @@
 
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
-          <span style="font-weight:800; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.match}</span>
+          <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
+            ${b.isFast ? '<span style="background:#eab308; color:#0f172a; font-size:9px; font-weight:900; padding:1px 4px; border-radius:3px;">⚡ FAST</span>' : ''}
+            <span style="font-weight:800; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.match}</span>
+          </div>
           <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
             <span style="color:var(--text-muted); font-size:10px;">${time}</span>
             <button class="btn-tool" onclick="startEditBet(${b.id}, event)" style="padding:2px 5px; font-size:10px; background:#eab30822; color:#eab308; border-color:#eab30844;">✏️</button>
@@ -1209,14 +1393,13 @@
     }
   }
 
-  // BACKUP COMPLETO JSON UNIFICATO
+  // EXPORT / IMPORT
   function exportDataJson() {
     const exportBundle = {
       configRooms,
       archivedDays,
       activeSession,
       currentTheme,
-      // Retrocompatibilità: includiamo un flattened delle bettate totali
       historyBets: [
         ...(activeSession ? activeSession.bets : []),
         ...archivedDays.flatMap(d => d.bets)
@@ -1233,7 +1416,6 @@
     document.getElementById('importFileInput').click();
   }
 
-  // IMPORT DATI UNIVERSALE (RICONOSCE TUTTI I FORMATI)
   function importDataJson(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1245,23 +1427,18 @@
         if (!imported) throw new Error("File vuoto");
 
         if (confirm("Caricare questo backup? Sostituirà la configurazione, i conti e ripristinerà tutte le bettate.")) {
-          // 1. Ripristina Room & Conti
           if (imported.configRooms && Array.isArray(imported.configRooms)) {
             configRooms = imported.configRooms;
           }
 
-          // 2. Ripristina Tema
           if (imported.currentTheme) {
             setAppTheme(imported.currentTheme);
           }
 
-          // 3. Ripristina Giornate e Bettate
           if (imported.activeSession || imported.archivedDays) {
-            // Formato nuovo a sessioni
             activeSession = imported.activeSession || null;
             archivedDays = Array.isArray(imported.archivedDays) ? imported.archivedDays : [];
           } else if (imported.historyBets && Array.isArray(imported.historyBets)) {
-            // Formato precedente (array singolo di bettate): raggruppa o crea sessione
             activeSession = {
               id: 'session_' + Date.now(),
               dateLabel: new Date().toLocaleDateString('it-IT'),
@@ -1271,7 +1448,6 @@
             archivedDays = [];
           }
 
-          // Se non c'è una sessione attiva dopo l'import, creane una vuota o punta alla prima archiviata
           if (!activeSession && archivedDays.length > 0) {
             selectedViewSessionId = archivedDays[0].id;
           } else if (activeSession) {
@@ -1286,7 +1462,6 @@
             selectedViewSessionId = activeSession.id;
           }
 
-          // 4. Salva e Ricarica completa della UI
           saveAll();
           renderRooms();
           updateSessionControls();
@@ -1297,7 +1472,7 @@
           alert(`Backup caricato con successo!\nBettate ripristinate: ${totalBetsLoaded}`);
         }
       } catch (err) {
-        alert("Errore nella lettura del file JSON! Assicurati che sia un file di backup valido esportato da Bet Terminal.");
+        alert("Errore nella lettura del file JSON!");
         console.error(err);
       }
       event.target.value = '';
@@ -1311,10 +1486,11 @@
       alert("Nessuna bettata nella giornata selezionata da esportare in CSV!");
       return;
     }
-    let csv = "Giornata;DataOra;Match;Pronostico;ImportoTotale;QuotaPonderata;RitornoTotale;DettaglioConti\n";
+    let csv = "Giornata;DataOra;Tipo;Match;Pronostico;ImportoTotale;QuotaPonderata;RitornoTotale;DettaglioConti\n";
     session.bets.forEach(b => {
+      const tipo = b.isFast ? 'FAST' : 'STANDARD';
       const contiStr = b.entries.map(e => `${e.account}(${e.stake}€@${e.odds})`).join(" | ");
-      csv += `"${session.dateLabel}";"${b.date}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${b.totalReturn}";"${contiStr}"\n`;
+      csv += `"${session.dateLabel}";"${b.date}";"${tipo}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${b.totalReturn}";"${contiStr}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -1363,7 +1539,8 @@
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`#${index + 1}  ${b.match} - [${b.market}] (${time})`, 16, startY + 5.5);
+      const tag = b.isFast ? '[FAST] ' : '';
+      doc.text(`#${index + 1}  ${tag}${b.match} - [${b.market}] (${time})`, 16, startY + 5.5);
 
       startY += 10;
 
