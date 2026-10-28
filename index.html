@@ -6,24 +6,61 @@
   <meta name="theme-color" content="#0b1120">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Bet Terminal</title>
+  <title>Bet Terminal Pro</title>
 
   <!-- PWA MANIFEST INTEGRATO INLINE -->
   <link rel="manifest" id="pwaManifest">
 
-  <!-- Libreria CDN per generazione PDF pulita -->
+  <!-- Librerie PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
   <style>
+    :root {
+      --bg-body: #0b1120;
+      --bg-topbar: #0f172a;
+      --bg-panel-left: #090e1a;
+      --bg-panel-center: #0f172a;
+      --bg-panel-right: #090e1a;
+      --bg-card: #131d31;
+      --bg-row: #172239;
+      --bg-input: #090e1a;
+      --border-color: #1e293b;
+      --border-input: #334155;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-primary: #38bdf8;
+      --modal-bg: #0f172a;
+      --row-zebra: rgba(255, 255, 255, 0.04);
+    }
+
+    body.light-mode {
+      --bg-body: #f8fafc;
+      --bg-topbar: #ffffff;
+      --bg-panel-left: #f1f5f9;
+      --bg-panel-center: #ffffff;
+      --bg-panel-right: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-row: #f1f5f9;
+      --bg-input: #ffffff;
+      --border-color: #cbd5e1;
+      --border-input: #94a3b8;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-primary: #0284c7;
+      --modal-bg: #ffffff;
+      --row-zebra: rgba(0, 0, 0, 0.05);
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
     body {
-      background: #0b1120;
-      color: #f1f5f9;
+      background: var(--bg-body);
+      color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overflow: hidden;
       height: 100vh;
       width: 100vw;
+      transition: background 0.15s ease, color 0.15s ease;
     }
     input, button, select { font-family: inherit; }
     input, select { user-select: text; }
@@ -31,47 +68,47 @@
     .app-shell { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
     .top-bar {
       height: 48px;
-      background: #0f172a;
-      border-bottom: 1px solid #1e293b;
+      background: var(--bg-topbar);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 12px;
       flex-shrink: 0;
     }
     
-    /* GRIGLIA ADATTIVA */
+    /* GRIGLIA ADATTIVA OTTIMIZZATA PER COMPILAZIONE CENTRALE */
     .main-grid {
       display: grid;
-      grid-template-columns: 290px 1fr 350px;
+      grid-template-columns: 240px minmax(0, 1fr) 300px;
       flex: 1;
       overflow: hidden;
       transition: grid-template-columns 0.2s ease-in-out;
     }
     .main-grid.right-collapsed {
-      grid-template-columns: 290px 1fr 0px;
+      grid-template-columns: 240px minmax(0, 1fr) 0px;
     }
 
     /* COLONNA 1: ROOMS */
     .col-left {
-      background: #090e1a;
-      border-right: 1px solid #1e293b;
+      background: var(--bg-panel-left);
+      border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
-    .room-container { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-    .room-card { background: #131d31; border-radius: 8px; padding: 8px; border-left: 5px solid; }
+    .room-container { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+    .room-card { background: var(--bg-card); border-radius: 8px; padding: 8px; border-left: 5px solid; border-top: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
     .room-header { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-    .acc-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .acc-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
     .btn-acc {
-      padding: 10px 6px;
+      padding: 8px 4px;
       border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11px;
       cursor: pointer;
-      color: #fff;
+      color: var(--text-main);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -82,173 +119,180 @@
     }
     .btn-acc:active { transform: scale(0.96); filter: brightness(1.2); }
 
-    /* COLONNA 2: FORM BETTATA */
+    /* COLONNA 2: FORM COMPILAZIONE */
     .col-center {
       display: flex;
       flex-direction: column;
-      background: #0f172a;
-      border-right: 1px solid #1e293b;
+      background: var(--bg-panel-center);
+      border-right: 1px solid var(--border-color);
       overflow: hidden;
+      min-width: 0;
     }
     .match-header-inputs {
       display: flex;
-      gap: 8px;
-      padding: 10px 14px;
-      background: #131d31;
-      border-bottom: 1px solid #1e293b;
+      gap: 6px;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
       align-items: center;
       flex-shrink: 0;
     }
     .editing-banner {
       background: #eab308;
       color: #000;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
-      padding: 3px 8px;
+      padding: 4px 6px;
       border-radius: 4px;
       display: none;
       align-items: center;
-      gap: 6px;
+      white-space: nowrap;
     }
     .dark-input {
-      background: #090e1a;
-      border: 1px solid #334155;
-      color: #fff;
-      padding: 8px 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      color: var(--text-main);
+      padding: 6px 10px;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       outline: none;
     }
-    .dark-input:focus { border-color: #38bdf8; }
-    .table-container { flex: 1; overflow-y: auto; padding: 12px; }
+    .dark-input:focus { border-color: var(--accent-primary); }
+    .table-container { flex: 1; overflow-y: auto; padding: 8px 12px; }
+    
     .bet-row {
       display: grid;
-      grid-template-columns: 140px 120px 105px 1fr 40px;
+      grid-template-columns: minmax(110px, 1.4fr) minmax(90px, 1fr) minmax(80px, 0.9fr) minmax(90px, 1fr) 36px;
       align-items: center;
-      gap: 8px;
-      background: #172239;
-      padding: 6px 10px;
+      gap: 6px;
+      background: var(--bg-row);
+      padding: 6px 8px;
       border-radius: 8px;
       margin-bottom: 6px;
       border-left: 4px solid;
+      border-top: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
     }
     .num-inp {
-      background: #090e1a;
-      border: 1px solid #334155;
-      color: #38bdf8;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      color: var(--accent-primary);
       font-weight: 800;
-      font-size: 16px;
+      font-size: 14px;
       text-align: center;
       padding: 6px 4px;
       border-radius: 6px;
       width: 100%;
     }
-    .num-inp-quote { color: #facc15; }
+    .num-inp-quote { color: #eab308; }
 
-    /* BARRA TOTALI */
+    /* TOTALI COMPATTI PER RIMANERE INTEGRALI */
     .totals-bar {
-      background: #131d31;
-      border-top: 1px solid #1e293b;
-      padding: 10px 16px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      padding: 8px 12px;
       display: grid;
-      grid-template-columns: repeat(4, 1fr) 210px;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(140px, 190px);
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       flex-shrink: 0;
     }
-    .total-box { background: #090e1a; padding: 6px 12px; border-radius: 8px; border: 1px solid #1e293b; }
-    .total-lbl { font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; }
-    .total-val { font-size: 17px; font-weight: 900; }
+    .total-box { background: var(--bg-input); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); min-width: 0; }
+    .total-lbl { font-size: 9px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .total-val { font-size: 15px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .btn-register {
       background: #10b981;
       color: #fff;
       border: none;
-      height: 48px;
-      border-radius: 8px;
+      height: 42px;
+      border-radius: 6px;
       font-weight: 900;
-      font-size: 14px;
-      letter-spacing: 0.5px;
+      font-size: 13px;
+      letter-spacing: 0.3px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+      white-space: nowrap;
     }
     .btn-register.edit-mode {
       background: #eab308;
       color: #0f172a;
-      box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3);
+      box-shadow: 0 4px 10px rgba(234, 179, 8, 0.25);
     }
     .btn-register:active { transform: scale(0.97); }
 
-    /* COLONNA 3: STORICO CON TOGGLE */
+    /* COLONNA 3: STORICO */
     .col-right {
-      background: #090e1a;
+      background: var(--bg-panel-right);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       min-width: 0;
     }
     .right-header {
-      padding: 12px;
-      background: #131d31;
-      border-bottom: 1px solid #1e293b;
+      padding: 10px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
     }
-    .today-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .today-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
     .today-card {
-      background: #131d31;
-      border: 1px solid #1e293b;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 10px;
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
-    .today-card:hover { border-color: #475569; background: #18243c; }
-    .today-card.expanded { border-color: #38bdf8; background: #162035; }
+    .today-card:hover { border-color: var(--accent-primary); }
+    .today-card.expanded { border-color: var(--accent-primary); }
     .accounts-breakdown {
       display: none;
-      background: #090e1a;
+      background: var(--bg-input);
       border-radius: 6px;
-      padding: 8px;
+      padding: 6px;
       margin-top: 4px;
-      border: 1px solid #1e293b;
+      border: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
     .acc-detail-row {
       display: flex;
       justify-content: space-between;
       font-size: 11px;
       padding: 2px 4px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--row-zebra);
     }
     .acc-detail-row:last-child { border-bottom: none; }
 
     /* BOTTONI E TOOLBAR */
     .btn-tool {
-      background: #1e293b;
-      color: #94a3b8;
-      border: 1px solid #334155;
-      padding: 5px 10px;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border: 1px solid var(--border-input);
+      padding: 5px 9px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 11px;
       cursor: pointer;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
+      white-space: nowrap;
     }
-    .btn-tool:hover { color: #fff; border-color: #64748b; }
-    .btn-del { background: transparent; border: none; color: #ef4444; font-size: 16px; cursor: pointer; }
+    .btn-tool:hover { color: var(--text-main); border-color: var(--accent-primary); }
+    .btn-del { background: transparent; border: none; color: #ef4444; font-size: 16px; cursor: pointer; padding: 2px 4px; }
 
     /* MODAL GESTIONE */
     .modal-overlay {
@@ -261,46 +305,46 @@
       z-index: 1000;
     }
     .modal-content {
-      background: #0f172a;
-      border: 1px solid #334155;
-      width: 780px;
-      max-width: 92vw;
-      max-height: 85vh;
-      border-radius: 12px;
+      background: var(--modal-bg);
+      border: 1px solid var(--border-input);
+      width: 760px;
+      max-width: 94vw;
+      max-height: 88vh;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
       box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
     }
     .modal-header {
-      padding: 14px 18px;
-      background: #131d31;
-      border-bottom: 1px solid #1e293b;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 800;
     }
-    .modal-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .manage-section { background: #131d31; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
-    .manage-section h4 { font-size: 13px; color: #38bdf8; margin-bottom: 10px; text-transform: uppercase; font-weight: 800; }
+    .modal-body { padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+    .manage-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; }
+    .manage-section h4 { font-size: 12px; color: var(--accent-primary); margin-bottom: 8px; text-transform: uppercase; font-weight: 800; }
     .acc-tag-editable {
       display: inline-flex;
       align-items: center;
-      background: #1e293b;
+      background: var(--bg-input);
       padding: 3px 6px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 11px;
       margin: 3px;
-      border: 1px solid #334155;
+      border: 1px solid var(--border-input);
     }
     .acc-tag-editable input {
       background: transparent;
       border: none;
-      color: #fff;
+      color: var(--text-main);
       font-weight: 700;
-      font-size: 12px;
-      width: 90px;
+      font-size: 11px;
+      width: 85px;
       outline: none;
     }
     .acc-tag-editable button { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; margin-left: 4px; }
@@ -310,27 +354,27 @@
 
 <div class="app-shell">
   <header class="top-bar">
-    <div style="display:flex; align-items:center; gap:10px;">
-      <span style="font-size:18px; font-weight:900; color:#38bdf8;">⚡ BET TERMINAL</span>
-      <span id="backupStatus" style="font-size:11px; color:#10b981; background:rgba(16,185,129,0.1); padding:3px 8px; border-radius:4px; font-weight:700;">● AUTO-SAVE CONTINUO</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-size:16px; font-weight:900; color:var(--accent-primary);">⚡ BET TERMINAL</span>
+      <span id="backupStatus" style="font-size:10px; color:#10b981; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">● AUTO-SAVE</span>
     </div>
-    <div style="display:flex; gap:8px;">
-      <button id="btnPwaInstall" class="btn-tool" style="display:none; background:#10b981; color:#fff; font-weight:bold; border-color:#059669;">📲 INSTALLA SU DISPOSITIVO</button>
-      <button class="btn-tool" onclick="openConfigModal()" style="background:#2563eb; color:#fff; border-color:#3b82f6;">⚙️ Stanze & Conti</button>
-      <button class="btn-tool" onclick="triggerImportJson()">📥 Carica Backup</button>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <button id="btnPwaInstall" class="btn-tool" style="display:none; background:#10b981; color:#fff; font-weight:bold; border-color:#059669;">📲 Installa</button>
+      <button class="btn-tool" onclick="openConfigModal()" style="background:#2563eb; color:#fff; border-color:#3b82f6;">⚙️ Opzioni & Conti</button>
+      <button class="btn-tool" onclick="triggerImportJson()">📥 Carica</button>
       <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importDataJson(event)">
-      <button class="btn-tool" onclick="exportDataJson()">💾 Scarica Backup</button>
+      <button class="btn-tool" onclick="exportDataJson()">💾 Backup</button>
       <button class="btn-tool" onclick="exportDataCsv()">📊 CSV</button>
-      <button class="btn-tool" onclick="exportTodayPdf()" style="background:#ef4444; color:#fff; border-color:#dc2626; font-weight:700;">📄 Esporta PDF</button>
+      <button class="btn-tool" onclick="exportTodayPdf()" style="background:#ef4444; color:#fff; border-color:#dc2626; font-weight:700;">📄 PDF</button>
       <button class="btn-tool" id="btnToggleSidebar" onclick="toggleSidebar()" style="background:#334155; color:#fff; font-weight:bold;">◀ Storico</button>
     </div>
   </header>
 
   <main class="main-grid" id="mainGridContainer">
     <aside class="col-left">
-      <div style="padding:10px 14px; background:#131d31; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:12px; font-weight:800; color:#94a3b8;">ROOM & CONTI</span>
-        <button class="btn-tool" onclick="openConfigModal()" style="font-size:11px; padding:2px 6px;">Modifica</button>
+      <div style="padding:8px 12px; background:var(--bg-card); border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; font-weight:800; color:var(--text-muted);">ROOM & CONTI</span>
+        <button class="btn-tool" onclick="openConfigModal()" style="font-size:10px; padding:2px 5px;">Modifica</button>
       </div>
       <div class="room-container" id="roomsList"></div>
     </aside>
@@ -338,10 +382,10 @@
     <section class="col-center">
       <div class="match-header-inputs">
         <span id="editingTag" class="editing-banner">✏️ MODIFICA</span>
-        <input type="text" id="matchInput" class="dark-input" style="flex:2;" placeholder="Nome Match (es: Real Madrid - Milan)" autocomplete="off">
-        <input type="text" id="marketInput" class="dark-input" style="flex:1;" placeholder="Pronostico (es: Over 2.5)" autocomplete="off">
-        <button class="btn-tool" onclick="setEqualOdds()">= Quota a tutti</button>
-        <button class="btn-tool" id="btnCancelEdit" onclick="cancelEditMode()" style="display:none; color:#facc15;">Annulla</button>
+        <input type="text" id="matchInput" class="dark-input" style="flex:2;" placeholder="Match (es: Real Madrid - Milan)" autocomplete="off">
+        <input type="text" id="marketInput" class="dark-input" style="flex:1.2;" placeholder="Pronostico (es: Over 2.5)" autocomplete="off">
+        <button class="btn-tool" onclick="setEqualOdds()">= Quota</button>
+        <button class="btn-tool" id="btnCancelEdit" onclick="cancelEditMode()" style="display:none; color:#eab308;">Annulla</button>
         <button class="btn-tool" onclick="clearCurrentBet()" style="color:#ef4444;">Svuota</button>
       </div>
 
@@ -351,34 +395,34 @@
 
       <div class="totals-bar">
         <div class="total-box">
-          <div class="total-lbl">Totale Puntato</div>
-          <div class="total-val" style="color:#38bdf8;" id="totStake">€ 0.00</div>
+          <div class="total-lbl">Puntato</div>
+          <div class="total-val" style="color:var(--accent-primary);" id="totStake">€ 0.00</div>
         </div>
         <div class="total-box">
-          <div class="total-lbl">Quota Ponderata</div>
-          <div class="total-val" style="color:#facc15;" id="weightedOdds">@ 0.00</div>
+          <div class="total-lbl">Quota Pond.</div>
+          <div class="total-val" style="color:#eab308;" id="weightedOdds">@ 0.00</div>
         </div>
         <div class="total-box">
           <div class="total-lbl">Ritorno Lordo</div>
           <div class="total-val" style="color:#10b981;" id="totReturn">€ 0.00</div>
         </div>
         <div class="total-box">
-          <div class="total-lbl">Profitto Netto</div>
+          <div class="total-lbl">Netto</div>
           <div class="total-val" style="color:#4ade80;" id="totNet">€ 0.00</div>
         </div>
-        <button id="btnSubmitBet" class="btn-register" onclick="registerBet()">REGISTRA BETTATA ↵</button>
+        <button id="btnSubmitBet" class="btn-register" onclick="registerBet()">REGISTRA ↵</button>
       </div>
     </section>
 
     <aside class="col-right" id="rightSidebar">
       <div class="right-header">
         <div>
-          <div style="font-size:12px; font-weight:800;">REGISTRATE OGGI</div>
-          <div style="font-size:11px; color:#94a3b8;" id="todayStats">0 bettate | € 0.00</div>
+          <div style="font-size:11px; font-weight:800;">REGISTRATE OGGI</div>
+          <div style="font-size:10px; color:var(--text-muted);" id="todayStats">0 bettate | € 0.00</div>
         </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn-tool" onclick="clearTodayHistory()" style="font-size:10px;">Azzera</button>
-          <button class="btn-tool" onclick="toggleSidebar()" style="font-size:11px;">✕</button>
+        <div style="display:flex; gap:4px;">
+          <button class="btn-tool" onclick="clearTodayHistory()" style="font-size:10px; padding:2px 5px;">Azzera</button>
+          <button class="btn-tool" onclick="toggleSidebar()" style="font-size:11px; padding:2px 5px;">✕</button>
         </div>
       </div>
       <div class="today-list" id="todayFeed"></div>
@@ -389,38 +433,51 @@
 <div class="modal-overlay" id="configModal">
   <div class="modal-content">
     <div class="modal-header">
-      <span>⚙️ CONFIGURAZIONE ROOM & CONTI</span>
-      <button class="btn-del" onclick="closeConfigModal()" style="font-size:20px;">✕</button>
+      <span>⚙️ CONFIGURAZIONE E IMPOSTAZIONI</span>
+      <button class="btn-del" onclick="closeConfigModal()" style="font-size:18px;">✕</button>
     </div>
     <div class="modal-body">
+      <!-- SEZIONE TEMA -->
       <div class="manage-section">
-        <h4>1. Aggiungi Nuova Room</h4>
+        <h4>1. Aspetto e Tema</h4>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span style="font-size:13px; font-weight:600;">Tema Interfaccia:</span>
+          <button class="btn-tool" id="themeDarkBtn" onclick="setAppTheme('dark')" style="background:#1e293b; color:#fff; font-weight:bold;">🌙 Scuro (Default)</button>
+          <button class="btn-tool" id="themeLightBtn" onclick="setAppTheme('light')" style="background:#f1f5f9; color:#0f172a; font-weight:bold; border-color:#cbd5e1;">☀️ Chiaro</button>
+        </div>
+      </div>
+
+      <!-- SEZIONE ROOMS -->
+      <div class="manage-section">
+        <h4>2. Aggiungi Nuova Room</h4>
         <div style="display:flex; gap:8px;">
           <input type="text" id="newRoomName" class="dark-input" placeholder="Nome Room (es: Sisal)" style="flex:2;">
-          <input type="color" id="newRoomColor" value="#10b981" style="height:36px; width:45px; border:none; border-radius:6px; cursor:pointer; background:none;">
+          <input type="color" id="newRoomColor" value="#10b981" style="height:34px; width:45px; border:none; border-radius:6px; cursor:pointer; background:none;">
           <button class="btn-tool" style="background:#10b981; color:#fff;" onclick="addNewRoom()">+ Salva Room</button>
         </div>
       </div>
 
+      <!-- SEZIONE ACCOUNT -->
       <div class="manage-section">
-        <h4>2. Aggiungi Account a una Room</h4>
+        <h4>3. Aggiungi Account a una Room</h4>
         <div style="display:flex; gap:8px;">
           <select id="selectRoomForAcc" class="dark-input" style="flex:1;"></select>
           <input type="text" id="newAccName" class="dark-input" placeholder="Nome Account (es: Betsson 5)" style="flex:2;">
-          <button class="btn-tool" style="background:#38bdf8; color:#0f172a; font-weight:bold;" onclick="addNewAccount()">+ Aggiungi Account</button>
+          <button class="btn-tool" style="background:var(--accent-primary); color:#0f172a; font-weight:bold;" onclick="addNewAccount()">+ Aggiungi Account</button>
         </div>
       </div>
 
+      <!-- MODIFICA DIRETTA -->
       <div class="manage-section">
-        <h4>3. Modifica Diretta Nomi, Colori e Account Esistenti</h4>
-        <div id="modalRoomsList" style="display:flex; flex-direction:column; gap:10px; max-height:260px; overflow-y:auto;"></div>
+        <h4>4. Modifica Diretta Nomi, Colori e Account Esistenti</h4>
+        <div id="modalRoomsList" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;"></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // PWA CONFIG
+  // PWA
   const pwaJson = {
     "name": "Bet Terminal Pro",
     "short_name": "BetTerminal",
@@ -439,7 +496,7 @@
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v2';
+      const CACHE_NAME = 'bet-terminal-v3';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -468,7 +525,7 @@
     }
   });
 
-  // LOGICA APPLICAZIONE
+  // STATO E DATI
   const DEFAULT_ROOMS = [
     { name: 'Betsson', color: '#ea580c', accounts: ['Betsson 1', 'Betsson 2', 'Betsson 3', 'Betsson 4'] },
     { name: 'Eplay24', color: '#dc2626', accounts: ['Eplay A', 'Eplay B', 'Eplay C'] },
@@ -480,17 +537,39 @@
 
   let configRooms = JSON.parse(localStorage.getItem('bet_terminal_rooms') || JSON.stringify(DEFAULT_ROOMS));
   let historyBets = JSON.parse(localStorage.getItem('bet_terminal_history') || '[]');
+  let currentTheme = localStorage.getItem('bet_terminal_theme') || 'dark';
   let activeEntries = [];
   let editingBetId = null;
   let expandedCardId = null;
   let isSidebarOpen = true;
 
   function init() {
+    applyTheme(currentTheme);
     renderRooms();
     renderActiveTable();
     renderTodayFeed();
   }
 
+  // GESTIONE TEMA
+  function setAppTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem('bet_terminal_theme', theme);
+    applyTheme(theme);
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'light') {
+      document.body.classList.add('light-mode');
+      document.getElementById('themeLightBtn').style.outline = '2px solid #0284c7';
+      document.getElementById('themeDarkBtn').style.outline = 'none';
+    } else {
+      document.body.classList.remove('light-mode');
+      document.getElementById('themeDarkBtn').style.outline = '2px solid #38bdf8';
+      document.getElementById('themeLightBtn').style.outline = 'none';
+    }
+  }
+
+  // GESTIONE SIDEBAR
   function toggleSidebar() {
     const grid = document.getElementById('mainGridContainer');
     const btn = document.getElementById('btnToggleSidebar');
@@ -519,7 +598,7 @@
     configRooms.forEach(room => {
       const card = document.createElement('div');
       card.className = 'room-card';
-      card.style.borderColor = room.color;
+      card.style.borderLeftColor = room.color;
       card.innerHTML = `<div class="room-header" style="color:${room.color}">${room.name}</div><div class="acc-buttons"></div>`;
       const btnGrid = card.querySelector('.acc-buttons');
       
@@ -527,7 +606,6 @@
         const btn = document.createElement('button');
         btn.className = 'btn-acc';
         btn.style.backgroundColor = room.color + '22';
-        btn.style.color = '#fff';
         btn.textContent = acc;
         btn.onclick = () => addAccountToBet(room.name, acc, room.color);
         btnGrid.appendChild(btn);
@@ -540,6 +618,7 @@
     document.getElementById('configModal').style.display = 'flex';
     populateRoomSelect();
     renderModalList();
+    applyTheme(currentTheme);
   }
 
   function closeConfigModal() {
@@ -562,10 +641,10 @@
     cont.innerHTML = '';
     configRooms.forEach((r, rIdx) => {
       const row = document.createElement('div');
-      row.style.background = '#090e1a';
-      row.style.padding = '8px 12px';
+      row.style.background = 'var(--bg-input)';
+      row.style.padding = '8px 10px';
       row.style.borderRadius = '6px';
-      row.style.borderLeft = `5px solid ${r.color}`;
+      row.style.borderLeft = `4px solid ${r.color}`;
 
       let accTags = r.accounts.map((acc, aIdx) => `
         <span class="acc-tag-editable">
@@ -575,14 +654,14 @@
       `).join('');
 
       row.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
-          <input type="text" value="${r.name}" style="background:#131d31; border:1px solid #334155; color:#fff; font-weight:800; padding:4px 8px; border-radius:4px; font-size:13px; width:180px;" onchange="updateRoomName(${rIdx}, this.value)">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <input type="color" value="${r.color}" style="height:28px; width:36px; border:none; cursor:pointer; background:none;" onchange="updateRoomColor(${rIdx}, this.value)">
-            <button class="btn-del" onclick="deleteRoom(${rIdx})" title="Elimina intera room" style="font-size:12px;">Elimina Room ✕</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;">
+          <input type="text" value="${r.name}" style="background:var(--bg-card); border:1px solid var(--border-input); color:var(--text-main); font-weight:800; padding:3px 6px; border-radius:4px; font-size:12px; width:150px;" onchange="updateRoomName(${rIdx}, this.value)">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <input type="color" value="${r.color}" style="height:26px; width:32px; border:none; cursor:pointer; background:none;" onchange="updateRoomColor(${rIdx}, this.value)">
+            <button class="btn-del" onclick="deleteRoom(${rIdx})" title="Elimina intera room" style="font-size:11px;">Elimina Room ✕</button>
           </div>
         </div>
-        <div>${accTags || '<span style="color:#64748b; font-size:11px;">Nessun account presente</span>'}</div>
+        <div>${accTags || '<span style="color:var(--text-muted); font-size:11px;">Nessun account</span>'}</div>
       `;
       cont.appendChild(row);
     });
@@ -674,8 +753,8 @@
       row.dataset.acc = entry.account;
 
       row.innerHTML = `
-        <div>
-          <div style="font-weight:800; font-size:13px;">${entry.account}</div>
+        <div style="min-width:0; overflow:hidden;">
+          <div style="font-weight:800; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${entry.account}</div>
           <div style="font-size:10px; color:${entry.color};">${entry.room}</div>
         </div>
         <div>
@@ -684,10 +763,12 @@
         <div>
           <input type="number" step="0.01" class="num-inp num-inp-quote" placeholder="Quota @" value="${entry.odds}" oninput="updateVal(${idx}, 'odds', this.value)">
         </div>
-        <div style="font-size:12px; color:#10b981; font-weight:700;">
+        <div style="font-size:11px; color:#10b981; font-weight:700; text-align:right; white-space:nowrap;">
           R: € ${((parseFloat(entry.stake) || 0) * (parseFloat(entry.odds) || 0)).toFixed(2)}
         </div>
-        <button class="btn-del" onclick="removeAccount(${entry.id})">✕</button>
+        <div style="text-align:center;">
+          <button class="btn-del" onclick="removeAccount(${entry.id})">✕</button>
+        </div>
       `;
       cont.appendChild(row);
     });
@@ -745,7 +826,7 @@
     document.getElementById('editingTag').style.display = 'inline-flex';
     document.getElementById('btnCancelEdit').style.display = 'inline-block';
     const submitBtn = document.getElementById('btnSubmitBet');
-    submitBtn.textContent = 'AGGIORNA BETTATA REGISTRATA ✓';
+    submitBtn.textContent = 'AGGIORNA ✓';
     submitBtn.classList.add('edit-mode');
 
     renderActiveTable();
@@ -756,8 +837,25 @@
     document.getElementById('editingTag').style.display = 'none';
     document.getElementById('btnCancelEdit').style.display = 'none';
     const submitBtn = document.getElementById('btnSubmitBet');
-    submitBtn.textContent = 'REGISTRA BETTATA ↵';
+    submitBtn.textContent = 'REGISTRA ↵';
     submitBtn.classList.remove('edit-mode');
+  }
+
+  // ELIMINA B換えTATA REGISTRATA DALLO STORICO
+  function deleteSingleBet(betId, e) {
+    if (e) e.stopPropagation();
+    const bet = historyBets.find(b => b.id === betId);
+    if (!bet) return;
+
+    if (confirm(`Vuoi eliminare definitivamente la bettata "${bet.match}"?`)) {
+      if (editingBetId === betId) {
+        cancelEditMode();
+        clearCurrentBet();
+      }
+      historyBets = historyBets.filter(b => b.id !== betId);
+      saveAll();
+      renderTodayFeed();
+    }
   }
 
   function registerBet() {
@@ -824,24 +922,25 @@
 
       let accountsRows = b.entries.map(e => `
         <div class="acc-detail-row">
-          <span style="font-weight:700; color:${e.color || '#fff'}">${e.account} (${e.room || ''})</span>
-          <span><b>€ ${parseFloat(e.stake || 0).toFixed(2)}</b> @ <b style="color:#facc15;">${parseFloat(e.odds || 0).toFixed(2)}</b></span>
+          <span style="font-weight:700; color:${e.color || 'var(--text-main)'}">${e.account} (${e.room || ''})</span>
+          <span><b>€ ${parseFloat(e.stake || 0).toFixed(2)}</b> @ <b style="color:#eab308;">${parseFloat(e.odds || 0).toFixed(2)}</b></span>
         </div>
       `).join('');
 
       card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-weight:800; font-size:13px;">${b.match}</span>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="color:#94a3b8; font-size:11px;">${time}</span>
-            <button class="btn-tool" onclick="startEditBet(${b.id}, event)" style="padding:2px 6px; font-size:11px; background:#eab30822; color:#facc15; border-color:#eab30844;">✏️ Edit</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+          <span style="font-weight:800; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.match}</span>
+          <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+            <span style="color:var(--text-muted); font-size:10px;">${time}</span>
+            <button class="btn-tool" onclick="startEditBet(${b.id}, event)" style="padding:2px 5px; font-size:10px; background:#eab30822; color:#eab308; border-color:#eab30844;">✏️</button>
+            <button class="btn-del" onclick="deleteSingleBet(${b.id}, event)" title="Elimina bettata" style="font-size:13px; padding:0 3px;">🗑️</button>
           </div>
         </div>
-        <div style="font-size:12px; color:#38bdf8;">${b.market}</div>
-        <div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:800; font-size:13px;">
+        <div style="font-size:11px; color:var(--accent-primary);">${b.market}</div>
+        <div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:800; font-size:12px;">
           <span style="color:#10b981;">€ ${b.totalStake.toFixed(2)}</span>
-          <span style="color:#facc15;">@ ${b.weightedOdds.toFixed(2)}</span>
-          <span style="color:#94a3b8; font-size:11px;">(${b.entries.length} conti) ${isExpanded ? '▲' : '▼'}</span>
+          <span style="color:#eab308;">@ ${b.weightedOdds.toFixed(2)}</span>
+          <span style="color:var(--text-muted); font-size:10px;">(${b.entries.length}) ${isExpanded ? '▲' : '▼'}</span>
         </div>
         <div class="accounts-breakdown" style="display: ${isExpanded ? 'flex' : 'none'};">
           ${accountsRows}
@@ -867,7 +966,7 @@
 
   // IMPORT/EXPORT BACKUP
   function exportDataJson() {
-    const exportBundle = { configRooms, historyBets };
+    const exportBundle = { configRooms, historyBets, currentTheme };
     const blob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -891,6 +990,7 @@
           if (confirm("Caricare questo backup? Sostituirà la configurazione e aggiungerà lo storico.")) {
             configRooms = imported.configRooms;
             historyBets = imported.historyBets;
+            if (imported.currentTheme) setAppTheme(imported.currentTheme);
             saveRooms();
             renderTodayFeed();
             alert("Backup caricato con successo!");
@@ -919,20 +1019,19 @@
     a.click();
   }
 
-  // ESPORTAZIONE PDF RESOCONTO GIORNATA
+  // PDF
   function exportTodayPdf() {
     const today = new Date().toISOString().split('T')[0];
     const todayBets = historyBets.filter(b => b.date.startsWith(today));
 
     if (todayBets.length === 0) {
-      alert("Nessuna bettata registrata oggi da esportare in PDF!");
+      alert("Nessuna bettata registrata oggi da esportare!");
       return;
     }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    // Intestazione PDF
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, 210, 24, 'F');
     doc.setTextColor(56, 189, 248);
@@ -957,7 +1056,6 @@
         startY = 20;
       }
 
-      // Riga Titolo Bettata
       const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       doc.setFillColor(241, 245, 249);
       doc.rect(14, startY, 182, 8, 'F');
@@ -968,7 +1066,6 @@
 
       startY += 10;
 
-      // Tabella Dettaglio Conti per la singola bettata
       const tableRows = b.entries.map(e => [
         e.account,
         e.room,
@@ -977,7 +1074,6 @@
         `€ ${(parseFloat(e.stake || 0) * parseFloat(e.odds || 0)).toFixed(2)}`
       ]);
 
-      // Riga Totale Bettata
       tableRows.push([
         { content: 'TOTALE BETTATA', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
         { content: `€ ${b.totalStake.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
@@ -999,7 +1095,6 @@
       startY = doc.lastAutoTable.finalY + 10;
     });
 
-    // Box Riepilogo Finale della Giornata
     if (startY > 240) {
       doc.addPage();
       startY = 20;
