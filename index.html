@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0a0c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FIGUENCER" />
+    <meta name="application-name" content="FIGUENCER" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#0a0a0c" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <title>FIGUENCER</title>
+    <meta name="description" content="FIGUENCER - Multi-track 64-step MIDI sequencer with real-time track effects, melodic and drum machine modes, scale quantization, Euclidean and random sequence generators, and Web MIDI routing." />
+    <meta property="og:title" content="FIGUENCER" />
+    <meta property="og:description" content="FIGUENCER - Multi-track 64-step MIDI sequencer with real-time track effects, melodic and drum machine modes, scale quantization, Euclidean and random sequence generators, and Web MIDI routing." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Anti-loop shield: prevent any external reload script from causing rapid reload loops
+      try {
+        var lastReload = parseInt(sessionStorage.getItem('midiseq_last_load') || '0', 10);
+        var now = Date.now();
+        sessionStorage.setItem('midiseq_last_load', now.toString());
+      } catch(e) {}
+
+      // Capture early beforeinstallprompt event before React hydrates
+      window.__pwaPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
