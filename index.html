@@ -11,6 +11,10 @@
   <!-- PWA MANIFEST INTEGRATO INLINE -->
   <link rel="manifest" id="pwaManifest">
 
+  <!-- Libreria CDN per generazione PDF pulita -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
     body {
@@ -35,11 +39,17 @@
       padding: 0 16px;
       flex-shrink: 0;
     }
+    
+    /* GRIGLIA ADATTIVA */
     .main-grid {
       display: grid;
       grid-template-columns: 290px 1fr 350px;
       flex: 1;
       overflow: hidden;
+      transition: grid-template-columns 0.2s ease-in-out;
+    }
+    .main-grid.right-collapsed {
+      grid-template-columns: 290px 1fr 0px;
     }
 
     /* COLONNA 1: ROOMS */
@@ -172,12 +182,13 @@
     }
     .btn-register:active { transform: scale(0.97); }
 
-    /* COLONNA 3: STORICO */
+    /* COLONNA 3: STORICO CON TOGGLE */
     .col-right {
       background: #090e1a;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      min-width: 0;
     }
     .right-header {
       padding: 12px;
@@ -222,6 +233,7 @@
     }
     .acc-detail-row:last-child { border-bottom: none; }
 
+    /* BOTTONI E TOOLBAR */
     .btn-tool {
       background: #1e293b;
       color: #94a3b8;
@@ -231,6 +243,9 @@
       font-size: 12px;
       cursor: pointer;
       font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
     .btn-tool:hover { color: #fff; border-color: #64748b; }
     .btn-del { background: transparent; border: none; color: #ef4444; font-size: 16px; cursor: pointer; }
@@ -301,14 +316,17 @@
     </div>
     <div style="display:flex; gap:8px;">
       <button id="btnPwaInstall" class="btn-tool" style="display:none; background:#10b981; color:#fff; font-weight:bold; border-color:#059669;">📲 INSTALLA SU DISPOSITIVO</button>
-      <button class="btn-tool" onclick="openConfigModal()" style="background:#2563eb; color:#fff; border-color:#3b82f6;">⚙️ Gestione Conti & Colori</button>
-      <button class="btn-tool" onclick="linkLocalFolder()">📁 Sincronizza Cartella</button>
+      <button class="btn-tool" onclick="openConfigModal()" style="background:#2563eb; color:#fff; border-color:#3b82f6;">⚙️ Stanze & Conti</button>
+      <button class="btn-tool" onclick="triggerImportJson()">📥 Carica Backup</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importDataJson(event)">
       <button class="btn-tool" onclick="exportDataJson()">💾 Scarica Backup</button>
-      <button class="btn-tool" onclick="exportDataCsv()">📊 Esporta CSV</button>
+      <button class="btn-tool" onclick="exportDataCsv()">📊 CSV</button>
+      <button class="btn-tool" onclick="exportTodayPdf()" style="background:#ef4444; color:#fff; border-color:#dc2626; font-weight:700;">📄 Esporta PDF</button>
+      <button class="btn-tool" id="btnToggleSidebar" onclick="toggleSidebar()" style="background:#334155; color:#fff; font-weight:bold;">◀ Storico</button>
     </div>
   </header>
 
-  <main class="main-grid">
+  <main class="main-grid" id="mainGridContainer">
     <aside class="col-left">
       <div style="padding:10px 14px; background:#131d31; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center;">
         <span style="font-size:12px; font-weight:800; color:#94a3b8;">ROOM & CONTI</span>
@@ -352,13 +370,16 @@
       </div>
     </section>
 
-    <aside class="col-right">
+    <aside class="col-right" id="rightSidebar">
       <div class="right-header">
         <div>
           <div style="font-size:12px; font-weight:800;">REGISTRATE OGGI</div>
           <div style="font-size:11px; color:#94a3b8;" id="todayStats">0 bettate | € 0.00</div>
         </div>
-        <button class="btn-tool" onclick="clearTodayHistory()" style="font-size:10px;">Azzera Oggi</button>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-tool" onclick="clearTodayHistory()" style="font-size:10px;">Azzera</button>
+          <button class="btn-tool" onclick="toggleSidebar()" style="font-size:11px;">✕</button>
+        </div>
       </div>
       <div class="today-list" id="todayFeed"></div>
     </aside>
@@ -399,7 +420,7 @@
 </div>
 
 <script>
-  // PWA MANIFEST AUTOGENERATO INLINE
+  // PWA CONFIG
   const pwaJson = {
     "name": "Bet Terminal Pro",
     "short_name": "BetTerminal",
@@ -416,10 +437,9 @@
   const blobManifest = new Blob([JSON.stringify(pwaJson)], {type: 'application/json'});
   document.getElementById('pwaManifest').setAttribute('href', URL.createObjectURL(blobManifest));
 
-  // SERVICE WORKER OFFLINE INLINE
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v1';
+      const CACHE_NAME = 'bet-terminal-v2';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -432,7 +452,6 @@
     navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
   }
 
-  // TASTO DIRETTO "INSTALLA" PWA
   let deferredPrompt;
   const btnInstall = document.getElementById('btnPwaInstall');
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -444,14 +463,12 @@
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        btnInstall.style.display = 'none';
-      }
+      if (outcome === 'accepted') btnInstall.style.display = 'none';
       deferredPrompt = null;
     }
   });
 
-  // LOGICA BET TERMINAL
+  // LOGICA APPLICAZIONE
   const DEFAULT_ROOMS = [
     { name: 'Betsson', color: '#ea580c', accounts: ['Betsson 1', 'Betsson 2', 'Betsson 3', 'Betsson 4'] },
     { name: 'Eplay24', color: '#dc2626', accounts: ['Eplay A', 'Eplay B', 'Eplay C'] },
@@ -466,12 +483,27 @@
   let activeEntries = [];
   let editingBetId = null;
   let expandedCardId = null;
-  let dirHandle = null;
+  let isSidebarOpen = true;
 
   function init() {
     renderRooms();
     renderActiveTable();
     renderTodayFeed();
+  }
+
+  function toggleSidebar() {
+    const grid = document.getElementById('mainGridContainer');
+    const btn = document.getElementById('btnToggleSidebar');
+    isSidebarOpen = !isSidebarOpen;
+    if (isSidebarOpen) {
+      grid.classList.remove('right-collapsed');
+      btn.textContent = '◀ Storico';
+      btn.style.background = '#334155';
+    } else {
+      grid.classList.add('right-collapsed');
+      btn.textContent = '▶ Storico';
+      btn.style.background = '#0284c7';
+    }
   }
 
   function saveRooms() {
@@ -828,37 +860,12 @@
     }
   }
 
-  async function saveAll() {
+  function saveAll() {
     localStorage.setItem('bet_terminal_history', JSON.stringify(historyBets));
     localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
-
-    if (dirHandle) {
-      try {
-        const fileHandle = await dirHandle.getFileHandle('backup_bettate.json', { create: true });
-        const writable = await fileHandle.createWritable();
-        const exportBundle = { configRooms, historyBets };
-        await writable.write(JSON.stringify(exportBundle, null, 2));
-        await writable.close();
-      } catch (err) {
-        console.warn("Auto-backup su file fallito:", err);
-      }
-    }
   }
 
-  async function linkLocalFolder() {
-    if ('showDirectoryPicker' in window) {
-      try {
-        dirHandle = await window.showDirectoryPicker();
-        document.getElementById('backupStatus').textContent = "● CARTELLA DISPOSITIVO COLLEGATA";
-        document.getElementById('backupStatus').style.color = "#38bdf8";
-        saveAll();
-        alert("Cartella sincronizzata! A ogni modifica l'app salverà automaticamente il file backup_bettate.json al suo interno.");
-      } catch (e) {
-        console.log("Scelta cartella annullata.");
-      }
-    }
-  }
-
+  // IMPORT/EXPORT BACKUP
   function exportDataJson() {
     const exportBundle = { configRooms, historyBets };
     const blob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: 'application/json' });
@@ -866,6 +873,37 @@
     a.href = URL.createObjectURL(blob);
     a.download = `backup_bettate_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
+  }
+
+  function triggerImportJson() {
+    document.getElementById('importFileInput').click();
+  }
+
+  function importDataJson(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (imported.configRooms && imported.historyBets) {
+          if (confirm("Caricare questo backup? Sostituirà la configurazione e aggiungerà lo storico.")) {
+            configRooms = imported.configRooms;
+            historyBets = imported.historyBets;
+            saveRooms();
+            renderTodayFeed();
+            alert("Backup caricato con successo!");
+          }
+        } else {
+          alert("Formato file di backup non valido!");
+        }
+      } catch (err) {
+        alert("Errore nella lettura del file JSON!");
+      }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
   }
 
   function exportDataCsv() {
@@ -879,6 +917,110 @@
     a.href = URL.createObjectURL(blob);
     a.download = `report_bettate_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
+  }
+
+  // ESPORTAZIONE PDF RESOCONTO GIORNATA
+  function exportTodayPdf() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayBets = historyBets.filter(b => b.date.startsWith(today));
+
+    if (todayBets.length === 0) {
+      alert("Nessuna bettata registrata oggi da esportare in PDF!");
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    // Intestazione PDF
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, 210, 24, 'F');
+    doc.setTextColor(56, 189, 248);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text("BET TERMINAL - RESOCONTO GIORNALIERO", 14, 15);
+
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Data: ${today}`, 165, 15);
+
+    let startY = 32;
+    let dayTotalStake = 0;
+    let dayTotalReturn = 0;
+
+    todayBets.forEach((b, index) => {
+      dayTotalStake += b.totalStake;
+      dayTotalReturn += b.totalReturn;
+
+      if (startY > 250) {
+        doc.addPage();
+        startY = 20;
+      }
+
+      // Riga Titolo Bettata
+      const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      doc.setFillColor(241, 245, 249);
+      doc.rect(14, startY, 182, 8, 'F');
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`#${index + 1}  ${b.match} - [${b.market}] (${time})`, 16, startY + 5.5);
+
+      startY += 10;
+
+      // Tabella Dettaglio Conti per la singola bettata
+      const tableRows = b.entries.map(e => [
+        e.account,
+        e.room,
+        `€ ${parseFloat(e.stake || 0).toFixed(2)}`,
+        `@ ${parseFloat(e.odds || 0).toFixed(2)}`,
+        `€ ${(parseFloat(e.stake || 0) * parseFloat(e.odds || 0)).toFixed(2)}`
+      ]);
+
+      // Riga Totale Bettata
+      tableRows.push([
+        { content: 'TOTALE BETTATA', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
+        { content: `€ ${b.totalStake.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
+        { content: `@ ${b.weightedOdds.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
+        { content: `€ ${b.totalReturn.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } }
+      ]);
+
+      doc.autoTable({
+        startY: startY,
+        head: [['Conto', 'Room', 'Importo', 'Quota', 'Ritorno Potenziale']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59] },
+        styles: { cellPadding: 2 },
+        margin: { left: 14, right: 14 }
+      });
+
+      startY = doc.lastAutoTable.finalY + 10;
+    });
+
+    // Box Riepilogo Finale della Giornata
+    if (startY > 240) {
+      doc.addPage();
+      startY = 20;
+    }
+
+    const netProfit = dayTotalReturn - dayTotalStake;
+    doc.setFillColor(15, 23, 42);
+    doc.roundedRect(14, startY, 182, 20, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text("RIEPILOGO GENERALE GIORNATA:", 18, startY + 8);
+    
+    doc.setTextColor(56, 189, 248);
+    doc.text(`Totale Puntato: € ${dayTotalStake.toFixed(2)}`, 18, startY + 15);
+    doc.setTextColor(250, 204, 21);
+    doc.text(`Ritorno Lordo: € ${dayTotalReturn.toFixed(2)}`, 85, startY + 15);
+    doc.setTextColor(74, 222, 128);
+    doc.text(`Profitto Netto: € ${netProfit.toFixed(2)}`, 150, startY + 15);
+
+    doc.save(`Resoconto_Bettate_${today}.pdf`);
   }
 
   init();
