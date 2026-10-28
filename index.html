@@ -1,50 +1,887 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0a0c" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-touch-fullscreen" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="FIGUENCER" />
-    <meta name="application-name" content="FIGUENCER" />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-TileColor" content="#0a0a0c" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <title>FIGUENCER</title>
-    <meta name="description" content="FIGUENCER - Multi-track 64-step MIDI sequencer with real-time track effects, melodic and drum machine modes, scale quantization, Euclidean and random sequence generators, and Web MIDI routing." />
-    <meta property="og:title" content="FIGUENCER" />
-    <meta property="og:description" content="FIGUENCER - Multi-track 64-step MIDI sequencer with real-time track effects, melodic and drum machine modes, scale quantization, Euclidean and random sequence generators, and Web MIDI routing." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      // Anti-loop shield: prevent any external reload script from causing rapid reload loops
-      try {
-        var lastReload = parseInt(sessionStorage.getItem('midiseq_last_load') || '0', 10);
-        var now = Date.now();
-        sessionStorage.setItem('midiseq_last_load', now.toString());
-      } catch(e) {}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0b1120">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Bet Terminal</title>
 
-      // Capture early beforeinstallprompt event before React hydrates
-      window.__pwaPrompt = null;
-      window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault();
-        window.__pwaPrompt = e;
-        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+  <!-- PWA MANIFEST INTEGRATO INLINE -->
+  <link rel="manifest" id="pwaManifest">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #0b1120;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+    input, button, select { font-family: inherit; }
+    input, select { user-select: text; }
+
+    .app-shell { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+    .top-bar {
+      height: 48px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 290px 1fr 350px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* COLONNA 1: ROOMS */
+    .col-left {
+      background: #090e1a;
+      border-right: 1px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .room-container { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+    .room-card { background: #131d31; border-radius: 8px; padding: 8px; border-left: 5px solid; }
+    .room-header { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .acc-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .btn-acc {
+      padding: 10px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.08);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.05s, filter 0.1s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-acc:active { transform: scale(0.96); filter: brightness(1.2); }
+
+    /* COLONNA 2: FORM BETTATA */
+    .col-center {
+      display: flex;
+      flex-direction: column;
+      background: #0f172a;
+      border-right: 1px solid #1e293b;
+      overflow: hidden;
+    }
+    .match-header-inputs {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #131d31;
+      border-bottom: 1px solid #1e293b;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .editing-banner {
+      background: #eab308;
+      color: #000;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .dark-input {
+      background: #090e1a;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    .dark-input:focus { border-color: #38bdf8; }
+    .table-container { flex: 1; overflow-y: auto; padding: 12px; }
+    .bet-row {
+      display: grid;
+      grid-template-columns: 140px 120px 105px 1fr 40px;
+      align-items: center;
+      gap: 8px;
+      background: #172239;
+      padding: 6px 10px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border-left: 4px solid;
+    }
+    .num-inp {
+      background: #090e1a;
+      border: 1px solid #334155;
+      color: #38bdf8;
+      font-weight: 800;
+      font-size: 16px;
+      text-align: center;
+      padding: 6px 4px;
+      border-radius: 6px;
+      width: 100%;
+    }
+    .num-inp-quote { color: #facc15; }
+
+    /* BARRA TOTALI */
+    .totals-bar {
+      background: #131d31;
+      border-top: 1px solid #1e293b;
+      padding: 10px 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr) 210px;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .total-box { background: #090e1a; padding: 6px 12px; border-radius: 8px; border: 1px solid #1e293b; }
+    .total-lbl { font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; }
+    .total-val { font-size: 17px; font-weight: 900; }
+
+    .btn-register {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      height: 48px;
+      border-radius: 8px;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .btn-register.edit-mode {
+      background: #eab308;
+      color: #0f172a;
+      box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3);
+    }
+    .btn-register:active { transform: scale(0.97); }
+
+    /* COLONNA 3: STORICO */
+    .col-right {
+      background: #090e1a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .right-header {
+      padding: 12px;
+      background: #131d31;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .today-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .today-card {
+      background: #131d31;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .today-card:hover { border-color: #475569; background: #18243c; }
+    .today-card.expanded { border-color: #38bdf8; background: #162035; }
+    .accounts-breakdown {
+      display: none;
+      background: #090e1a;
+      border-radius: 6px;
+      padding: 8px;
+      margin-top: 4px;
+      border: 1px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .acc-detail-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 2px 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .acc-detail-row:last-child { border-bottom: none; }
+
+    .btn-tool {
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-tool:hover { color: #fff; border-color: #64748b; }
+    .btn-del { background: transparent; border: none; color: #ef4444; font-size: 16px; cursor: pointer; }
+
+    /* MODAL GESTIONE */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #0f172a;
+      border: 1px solid #334155;
+      width: 780px;
+      max-width: 92vw;
+      max-height: 85vh;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 14px 18px;
+      background: #131d31;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+    }
+    .modal-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .manage-section { background: #131d31; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; }
+    .manage-section h4 { font-size: 13px; color: #38bdf8; margin-bottom: 10px; text-transform: uppercase; font-weight: 800; }
+    .acc-tag-editable {
+      display: inline-flex;
+      align-items: center;
+      background: #1e293b;
+      padding: 3px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin: 3px;
+      border: 1px solid #334155;
+    }
+    .acc-tag-editable input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      width: 90px;
+      outline: none;
+    }
+    .acc-tag-editable button { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; margin-left: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <header class="top-bar">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:18px; font-weight:900; color:#38bdf8;">⚡ BET TERMINAL</span>
+      <span id="backupStatus" style="font-size:11px; color:#10b981; background:rgba(16,185,129,0.1); padding:3px 8px; border-radius:4px; font-weight:700;">● AUTO-SAVE CONTINUO</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="btnPwaInstall" class="btn-tool" style="display:none; background:#10b981; color:#fff; font-weight:bold; border-color:#059669;">📲 INSTALLA SU DISPOSITIVO</button>
+      <button class="btn-tool" onclick="openConfigModal()" style="background:#2563eb; color:#fff; border-color:#3b82f6;">⚙️ Gestione Conti & Colori</button>
+      <button class="btn-tool" onclick="linkLocalFolder()">📁 Sincronizza Cartella</button>
+      <button class="btn-tool" onclick="exportDataJson()">💾 Scarica Backup</button>
+      <button class="btn-tool" onclick="exportDataCsv()">📊 Esporta CSV</button>
+    </div>
+  </header>
+
+  <main class="main-grid">
+    <aside class="col-left">
+      <div style="padding:10px 14px; background:#131d31; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12px; font-weight:800; color:#94a3b8;">ROOM & CONTI</span>
+        <button class="btn-tool" onclick="openConfigModal()" style="font-size:11px; padding:2px 6px;">Modifica</button>
+      </div>
+      <div class="room-container" id="roomsList"></div>
+    </aside>
+
+    <section class="col-center">
+      <div class="match-header-inputs">
+        <span id="editingTag" class="editing-banner">✏️ MODIFICA</span>
+        <input type="text" id="matchInput" class="dark-input" style="flex:2;" placeholder="Nome Match (es: Real Madrid - Milan)" autocomplete="off">
+        <input type="text" id="marketInput" class="dark-input" style="flex:1;" placeholder="Pronostico (es: Over 2.5)" autocomplete="off">
+        <button class="btn-tool" onclick="setEqualOdds()">= Quota a tutti</button>
+        <button class="btn-tool" id="btnCancelEdit" onclick="cancelEditMode()" style="display:none; color:#facc15;">Annulla</button>
+        <button class="btn-tool" onclick="clearCurrentBet()" style="color:#ef4444;">Svuota</button>
+      </div>
+
+      <div class="table-container">
+        <div id="activeEntriesContainer"></div>
+      </div>
+
+      <div class="totals-bar">
+        <div class="total-box">
+          <div class="total-lbl">Totale Puntato</div>
+          <div class="total-val" style="color:#38bdf8;" id="totStake">€ 0.00</div>
+        </div>
+        <div class="total-box">
+          <div class="total-lbl">Quota Ponderata</div>
+          <div class="total-val" style="color:#facc15;" id="weightedOdds">@ 0.00</div>
+        </div>
+        <div class="total-box">
+          <div class="total-lbl">Ritorno Lordo</div>
+          <div class="total-val" style="color:#10b981;" id="totReturn">€ 0.00</div>
+        </div>
+        <div class="total-box">
+          <div class="total-lbl">Profitto Netto</div>
+          <div class="total-val" style="color:#4ade80;" id="totNet">€ 0.00</div>
+        </div>
+        <button id="btnSubmitBet" class="btn-register" onclick="registerBet()">REGISTRA BETTATA ↵</button>
+      </div>
+    </section>
+
+    <aside class="col-right">
+      <div class="right-header">
+        <div>
+          <div style="font-size:12px; font-weight:800;">REGISTRATE OGGI</div>
+          <div style="font-size:11px; color:#94a3b8;" id="todayStats">0 bettate | € 0.00</div>
+        </div>
+        <button class="btn-tool" onclick="clearTodayHistory()" style="font-size:10px;">Azzera Oggi</button>
+      </div>
+      <div class="today-list" id="todayFeed"></div>
+    </aside>
+  </main>
+</div>
+
+<div class="modal-overlay" id="configModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span>⚙️ CONFIGURAZIONE ROOM & CONTI</span>
+      <button class="btn-del" onclick="closeConfigModal()" style="font-size:20px;">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="manage-section">
+        <h4>1. Aggiungi Nuova Room</h4>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="newRoomName" class="dark-input" placeholder="Nome Room (es: Sisal)" style="flex:2;">
+          <input type="color" id="newRoomColor" value="#10b981" style="height:36px; width:45px; border:none; border-radius:6px; cursor:pointer; background:none;">
+          <button class="btn-tool" style="background:#10b981; color:#fff;" onclick="addNewRoom()">+ Salva Room</button>
+        </div>
+      </div>
+
+      <div class="manage-section">
+        <h4>2. Aggiungi Account a una Room</h4>
+        <div style="display:flex; gap:8px;">
+          <select id="selectRoomForAcc" class="dark-input" style="flex:1;"></select>
+          <input type="text" id="newAccName" class="dark-input" placeholder="Nome Account (es: Betsson 5)" style="flex:2;">
+          <button class="btn-tool" style="background:#38bdf8; color:#0f172a; font-weight:bold;" onclick="addNewAccount()">+ Aggiungi Account</button>
+        </div>
+      </div>
+
+      <div class="manage-section">
+        <h4>3. Modifica Diretta Nomi, Colori e Account Esistenti</h4>
+        <div id="modalRoomsList" style="display:flex; flex-direction:column; gap:10px; max-height:260px; overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // PWA MANIFEST AUTOGENERATO INLINE
+  const pwaJson = {
+    "name": "Bet Terminal Pro",
+    "short_name": "BetTerminal",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#0b1120",
+    "theme_color": "#0b1120",
+    "icons": [{
+      "src": "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230f172a'/><text y='65' x='20' font-size='60' fill='%2338bdf8'>⚡</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }]
+  };
+  const blobManifest = new Blob([JSON.stringify(pwaJson)], {type: 'application/json'});
+  document.getElementById('pwaManifest').setAttribute('href', URL.createObjectURL(blobManifest));
+
+  // SERVICE WORKER OFFLINE INLINE
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      const CACHE_NAME = 'bet-terminal-v1';
+      self.addEventListener('install', e => {
+        e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
+        self.skipWaiting();
       });
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+      self.addEventListener('fetch', e => {
+        e.respondWith(caches.match(e.request).then(res => res || fetch(e.request).catch(() => caches.match('./'))));
+      });
+    `;
+    const swBlob = new Blob([swCode], {type: 'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+  }
 
+  // TASTO DIRETTO "INSTALLA" PWA
+  let deferredPrompt;
+  const btnInstall = document.getElementById('btnPwaInstall');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    btnInstall.style.display = 'inline-block';
+  });
+  btnInstall.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        btnInstall.style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+  });
+
+  // LOGICA BET TERMINAL
+  const DEFAULT_ROOMS = [
+    { name: 'Betsson', color: '#ea580c', accounts: ['Betsson 1', 'Betsson 2', 'Betsson 3', 'Betsson 4'] },
+    { name: 'Eplay24', color: '#dc2626', accounts: ['Eplay A', 'Eplay B', 'Eplay C'] },
+    { name: 'Sisal', color: '#16a34a', accounts: ['Sisal 1', 'Sisal 2'] },
+    { name: 'Snai', color: '#eab308', accounts: ['Snai 1', 'Snai 2', 'Snai 3'] },
+    { name: 'Eurobet', color: '#2563eb', accounts: ['Eurobet A', 'Eurobet B'] },
+    { name: 'Goldbet', color: '#0284c7', accounts: ['Goldbet 1', 'Goldbet 2'] }
+  ];
+
+  let configRooms = JSON.parse(localStorage.getItem('bet_terminal_rooms') || JSON.stringify(DEFAULT_ROOMS));
+  let historyBets = JSON.parse(localStorage.getItem('bet_terminal_history') || '[]');
+  let activeEntries = [];
+  let editingBetId = null;
+  let expandedCardId = null;
+  let dirHandle = null;
+
+  function init() {
+    renderRooms();
+    renderActiveTable();
+    renderTodayFeed();
+  }
+
+  function saveRooms() {
+    localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
+    renderRooms();
+    renderModalList();
+    saveAll();
+  }
+
+  function renderRooms() {
+    const cont = document.getElementById('roomsList');
+    cont.innerHTML = '';
+    configRooms.forEach(room => {
+      const card = document.createElement('div');
+      card.className = 'room-card';
+      card.style.borderColor = room.color;
+      card.innerHTML = `<div class="room-header" style="color:${room.color}">${room.name}</div><div class="acc-buttons"></div>`;
+      const btnGrid = card.querySelector('.acc-buttons');
+      
+      room.accounts.forEach(acc => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-acc';
+        btn.style.backgroundColor = room.color + '22';
+        btn.style.color = '#fff';
+        btn.textContent = acc;
+        btn.onclick = () => addAccountToBet(room.name, acc, room.color);
+        btnGrid.appendChild(btn);
+      });
+      cont.appendChild(card);
+    });
+  }
+
+  function openConfigModal() {
+    document.getElementById('configModal').style.display = 'flex';
+    populateRoomSelect();
+    renderModalList();
+  }
+
+  function closeConfigModal() {
+    document.getElementById('configModal').style.display = 'none';
+  }
+
+  function populateRoomSelect() {
+    const sel = document.getElementById('selectRoomForAcc');
+    sel.innerHTML = '';
+    configRooms.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.name;
+      opt.textContent = r.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  function renderModalList() {
+    const cont = document.getElementById('modalRoomsList');
+    cont.innerHTML = '';
+    configRooms.forEach((r, rIdx) => {
+      const row = document.createElement('div');
+      row.style.background = '#090e1a';
+      row.style.padding = '8px 12px';
+      row.style.borderRadius = '6px';
+      row.style.borderLeft = `5px solid ${r.color}`;
+
+      let accTags = r.accounts.map((acc, aIdx) => `
+        <span class="acc-tag-editable">
+          <input type="text" value="${acc}" onchange="updateAccountName(${rIdx}, ${aIdx}, this.value)">
+          <button onclick="deleteAccount(${rIdx}, ${aIdx})">✕</button>
+        </span>
+      `).join('');
+
+      row.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
+          <input type="text" value="${r.name}" style="background:#131d31; border:1px solid #334155; color:#fff; font-weight:800; padding:4px 8px; border-radius:4px; font-size:13px; width:180px;" onchange="updateRoomName(${rIdx}, this.value)">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="color" value="${r.color}" style="height:28px; width:36px; border:none; cursor:pointer; background:none;" onchange="updateRoomColor(${rIdx}, this.value)">
+            <button class="btn-del" onclick="deleteRoom(${rIdx})" title="Elimina intera room" style="font-size:12px;">Elimina Room ✕</button>
+          </div>
+        </div>
+        <div>${accTags || '<span style="color:#64748b; font-size:11px;">Nessun account presente</span>'}</div>
+      `;
+      cont.appendChild(row);
+    });
+  }
+
+  function updateRoomName(rIdx, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    configRooms[rIdx].name = trimmed;
+    saveRooms();
+    populateRoomSelect();
+  }
+
+  function updateRoomColor(rIdx, newColor) {
+    configRooms[rIdx].color = newColor;
+    saveRooms();
+  }
+
+  function updateAccountName(rIdx, aIdx, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    configRooms[rIdx].accounts[aIdx] = trimmed;
+    saveRooms();
+  }
+
+  function addNewRoom() {
+    const name = document.getElementById('newRoomName').value.trim();
+    const color = document.getElementById('newRoomColor').value;
+    if (!name) return alert("Inserisci il nome della Room");
+    if (configRooms.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+      return alert("Questa Room esiste già!");
+    }
+    configRooms.push({ name, color, accounts: [] });
+    document.getElementById('newRoomName').value = '';
+    saveRooms();
+    populateRoomSelect();
+  }
+
+  function addNewAccount() {
+    const roomName = document.getElementById('selectRoomForAcc').value;
+    const accName = document.getElementById('newAccName').value.trim();
+    if (!accName) return alert("Inserisci il nome dell'account");
+    
+    const room = configRooms.find(r => r.name === roomName);
+    if (!room) return;
+    if (room.accounts.includes(accName)) return alert("Questo account esiste già in questa Room!");
+
+    room.accounts.push(accName);
+    document.getElementById('newAccName').value = '';
+    saveRooms();
+  }
+
+  function deleteAccount(rIdx, aIdx) {
+    configRooms[rIdx].accounts.splice(aIdx, 1);
+    saveRooms();
+  }
+
+  function deleteRoom(rIdx) {
+    if (confirm(`Sei sicuro di voler eliminare la Room "${configRooms[rIdx].name}" e tutti i suoi conti?`)) {
+      configRooms.splice(rIdx, 1);
+      saveRooms();
+      populateRoomSelect();
+    }
+  }
+
+  function addAccountToBet(room, account, color) {
+    if (activeEntries.some(e => e.account === account)) return;
+    activeEntries.push({ id: Date.now() + Math.random(), room, account, color, stake: '', odds: '' });
+    renderActiveTable();
+    setTimeout(() => {
+      const inputs = document.querySelectorAll(`[data-acc="${account}"] .num-inp-stake`);
+      if (inputs.length) inputs[0].focus();
+    }, 50);
+  }
+
+  function removeAccount(id) {
+    activeEntries = activeEntries.filter(e => e.id !== id);
+    renderActiveTable();
+  }
+
+  function renderActiveTable() {
+    const cont = document.getElementById('activeEntriesContainer');
+    cont.innerHTML = '';
+    
+    activeEntries.forEach((entry, idx) => {
+      const row = document.createElement('div');
+      row.className = 'bet-row';
+      row.style.borderLeftColor = entry.color;
+      row.dataset.acc = entry.account;
+
+      row.innerHTML = `
+        <div>
+          <div style="font-weight:800; font-size:13px;">${entry.account}</div>
+          <div style="font-size:10px; color:${entry.color};">${entry.room}</div>
+        </div>
+        <div>
+          <input type="number" step="1" class="num-inp num-inp-stake" placeholder="Importo €" value="${entry.stake}" oninput="updateVal(${idx}, 'stake', this.value)">
+        </div>
+        <div>
+          <input type="number" step="0.01" class="num-inp num-inp-quote" placeholder="Quota @" value="${entry.odds}" oninput="updateVal(${idx}, 'odds', this.value)">
+        </div>
+        <div style="font-size:12px; color:#10b981; font-weight:700;">
+          R: € ${((parseFloat(entry.stake) || 0) * (parseFloat(entry.odds) || 0)).toFixed(2)}
+        </div>
+        <button class="btn-del" onclick="removeAccount(${entry.id})">✕</button>
+      `;
+      cont.appendChild(row);
+    });
+    calcTotals();
+  }
+
+  function updateVal(index, key, val) {
+    activeEntries[index][key] = val;
+    calcTotals();
+  }
+
+  function calcTotals() {
+    let totStake = 0, totReturn = 0;
+    activeEntries.forEach(e => {
+      const s = parseFloat(e.stake) || 0;
+      const o = parseFloat(e.odds) || 0;
+      totStake += s;
+      totReturn += (s * o);
+    });
+
+    const weighted = totStake > 0 ? (totReturn / totStake) : 0;
+    const net = totReturn - totStake;
+
+    document.getElementById('totStake').textContent = `€ ${totStake.toFixed(2)}`;
+    document.getElementById('weightedOdds').textContent = `@ ${weighted.toFixed(2)}`;
+    document.getElementById('totReturn').textContent = `€ ${totReturn.toFixed(2)}`;
+    document.getElementById('totNet').textContent = `€ ${net.toFixed(2)}`;
+  }
+
+  function setEqualOdds() {
+    const firstOdds = activeEntries.find(e => parseFloat(e.odds) > 0)?.odds;
+    if (!firstOdds) return;
+    activeEntries.forEach(e => e.odds = firstOdds);
+    renderActiveTable();
+  }
+
+  function clearCurrentBet() {
+    activeEntries = [];
+    document.getElementById('matchInput').value = '';
+    document.getElementById('marketInput').value = '';
+    cancelEditMode();
+    renderActiveTable();
+  }
+
+  function startEditBet(betId, e) {
+    if (e) e.stopPropagation();
+    const bet = historyBets.find(b => b.id === betId);
+    if (!bet) return;
+
+    editingBetId = bet.id;
+    document.getElementById('matchInput').value = bet.match;
+    document.getElementById('marketInput').value = bet.market;
+    activeEntries = JSON.parse(JSON.stringify(bet.entries));
+
+    document.getElementById('editingTag').style.display = 'inline-flex';
+    document.getElementById('btnCancelEdit').style.display = 'inline-block';
+    const submitBtn = document.getElementById('btnSubmitBet');
+    submitBtn.textContent = 'AGGIORNA BETTATA REGISTRATA ✓';
+    submitBtn.classList.add('edit-mode');
+
+    renderActiveTable();
+  }
+
+  function cancelEditMode() {
+    editingBetId = null;
+    document.getElementById('editingTag').style.display = 'none';
+    document.getElementById('btnCancelEdit').style.display = 'none';
+    const submitBtn = document.getElementById('btnSubmitBet');
+    submitBtn.textContent = 'REGISTRA BETTATA ↵';
+    submitBtn.classList.remove('edit-mode');
+  }
+
+  function registerBet() {
+    if (activeEntries.length === 0) return;
+    let totStake = 0, totReturn = 0;
+    activeEntries.forEach(e => {
+      const s = parseFloat(e.stake) || 0;
+      const o = parseFloat(e.odds) || 0;
+      totStake += s;
+      totReturn += (s * o);
+    });
+
+    if (editingBetId) {
+      const bIndex = historyBets.findIndex(b => b.id === editingBetId);
+      if (bIndex !== -1) {
+        historyBets[bIndex].match = document.getElementById('matchInput').value.trim() || 'Match Senza Nome';
+        historyBets[bIndex].market = document.getElementById('marketInput').value.trim() || 'Esito';
+        historyBets[bIndex].totalStake = totStake;
+        historyBets[bIndex].weightedOdds = totStake > 0 ? (totReturn / totStake) : 0;
+        historyBets[bIndex].totalReturn = totReturn;
+        historyBets[bIndex].entries = JSON.parse(JSON.stringify(activeEntries));
+      }
+      cancelEditMode();
+    } else {
+      const record = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        match: document.getElementById('matchInput').value.trim() || 'Match Senza Nome',
+        market: document.getElementById('marketInput').value.trim() || 'Esito',
+        totalStake: totStake,
+        weightedOdds: totStake > 0 ? (totReturn / totStake) : 0,
+        totalReturn: totReturn,
+        entries: JSON.parse(JSON.stringify(activeEntries))
+      };
+      historyBets.unshift(record);
+    }
+
+    saveAll();
+    clearCurrentBet();
+    renderTodayFeed();
+  }
+
+  function toggleCardExpand(betId) {
+    expandedCardId = (expandedCardId === betId) ? null : betId;
+    renderTodayFeed();
+  }
+
+  function renderTodayFeed() {
+    const cont = document.getElementById('todayFeed');
+    cont.innerHTML = '';
+    const today = new Date().toISOString().split('T')[0];
+    const todayBets = historyBets.filter(b => b.date.startsWith(today));
+
+    let dayStake = 0;
+    todayBets.forEach(b => dayStake += b.totalStake);
+    document.getElementById('todayStats').textContent = `${todayBets.length} bettate | € ${dayStake.toFixed(2)}`;
+
+    todayBets.forEach(b => {
+      const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      const isExpanded = (expandedCardId === b.id);
+      const card = document.createElement('div');
+      card.className = `today-card ${isExpanded ? 'expanded' : ''}`;
+      card.onclick = () => toggleCardExpand(b.id);
+
+      let accountsRows = b.entries.map(e => `
+        <div class="acc-detail-row">
+          <span style="font-weight:700; color:${e.color || '#fff'}">${e.account} (${e.room || ''})</span>
+          <span><b>€ ${parseFloat(e.stake || 0).toFixed(2)}</b> @ <b style="color:#facc15;">${parseFloat(e.odds || 0).toFixed(2)}</b></span>
+        </div>
+      `).join('');
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:800; font-size:13px;">${b.match}</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:#94a3b8; font-size:11px;">${time}</span>
+            <button class="btn-tool" onclick="startEditBet(${b.id}, event)" style="padding:2px 6px; font-size:11px; background:#eab30822; color:#facc15; border-color:#eab30844;">✏️ Edit</button>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#38bdf8;">${b.market}</div>
+        <div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:800; font-size:13px;">
+          <span style="color:#10b981;">€ ${b.totalStake.toFixed(2)}</span>
+          <span style="color:#facc15;">@ ${b.weightedOdds.toFixed(2)}</span>
+          <span style="color:#94a3b8; font-size:11px;">(${b.entries.length} conti) ${isExpanded ? '▲' : '▼'}</span>
+        </div>
+        <div class="accounts-breakdown" style="display: ${isExpanded ? 'flex' : 'none'};">
+          ${accountsRows}
+        </div>
+      `;
+      cont.appendChild(card);
+    });
+  }
+
+  function clearTodayHistory() {
+    if (confirm("Vuoi azzerare lo storico registrato oggi?")) {
+      const today = new Date().toISOString().split('T')[0];
+      historyBets = historyBets.filter(b => !b.date.startsWith(today));
+      saveAll();
+      renderTodayFeed();
+    }
+  }
+
+  async function saveAll() {
+    localStorage.setItem('bet_terminal_history', JSON.stringify(historyBets));
+    localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
+
+    if (dirHandle) {
+      try {
+        const fileHandle = await dirHandle.getFileHandle('backup_bettate.json', { create: true });
+        const writable = await fileHandle.createWritable();
+        const exportBundle = { configRooms, historyBets };
+        await writable.write(JSON.stringify(exportBundle, null, 2));
+        await writable.close();
+      } catch (err) {
+        console.warn("Auto-backup su file fallito:", err);
+      }
+    }
+  }
+
+  async function linkLocalFolder() {
+    if ('showDirectoryPicker' in window) {
+      try {
+        dirHandle = await window.showDirectoryPicker();
+        document.getElementById('backupStatus').textContent = "● CARTELLA DISPOSITIVO COLLEGATA";
+        document.getElementById('backupStatus').style.color = "#38bdf8";
+        saveAll();
+        alert("Cartella sincronizzata! A ogni modifica l'app salverà automaticamente il file backup_bettate.json al suo interno.");
+      } catch (e) {
+        console.log("Scelta cartella annullata.");
+      }
+    }
+  }
+
+  function exportDataJson() {
+    const exportBundle = { configRooms, historyBets };
+    const blob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `backup_bettate_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+  }
+
+  function exportDataCsv() {
+    let csv = "Data;Match;Pronostico;ImportoTotale;QuotaPonderata;RitornoTotale;DettaglioConti\n";
+    historyBets.forEach(b => {
+      const contiStr = b.entries.map(e => `${e.account}(${e.stake}€@${e.odds})`).join(" | ");
+      csv += `"${b.date}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${b.totalReturn}";"${contiStr}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `report_bettate_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  init();
+</script>
+</body>
+</html>
