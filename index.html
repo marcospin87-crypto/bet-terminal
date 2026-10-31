@@ -8,8 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Bet Terminal Pro</title>
 
+  <!-- PWA MANIFEST INTEGRATO INLINE -->
   <link rel="manifest" id="pwaManifest">
 
+  <!-- Librerie PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
@@ -77,7 +79,7 @@
     
     .main-grid {
       display: grid;
-      grid-template-columns: 240px minmax(0, 1fr) 340px;
+      grid-template-columns: 240px minmax(0, 1fr) 350px;
       flex: 1;
       overflow: hidden;
       transition: grid-template-columns 0.2s ease-in-out;
@@ -238,7 +240,7 @@
     }
     .btn-register:active { transform: scale(0.97); }
 
-    /* COLONNA 3: STORICO */
+    /* COLONNA 3: STORICO CON SESSIONI */
     .col-right {
       background: var(--bg-panel-right);
       display: flex;
@@ -323,6 +325,29 @@
     }
     .btn-tool:hover { color: var(--text-main); border-color: var(--accent-primary); }
     .btn-del { background: transparent; border: none; color: #ef4444; font-size: 16px; cursor: pointer; padding: 2px 4px; }
+
+    /* BOTTONE INVIO / COPIA STRINGA */
+    .btn-send-copy {
+      background: #10b981;
+      color: #fff;
+      border: 1px solid #059669;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 900;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      letter-spacing: 0.3px;
+      transition: transform 0.05s, background 0.15s;
+    }
+    .btn-send-copy:active { transform: scale(0.93); filter: brightness(1.2); }
+    .btn-send-copy.copied {
+      background: #38bdf8;
+      border-color: #0284c7;
+      color: #0f172a;
+    }
 
     /* MODAL */
     .modal-overlay {
@@ -608,7 +633,7 @@
   // SERVICE WORKER
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v9';
+      const CACHE_NAME = 'bet-terminal-v10';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -669,7 +694,6 @@
     if (savedActive) activeSession = JSON.parse(savedActive);
   } catch(e) {}
 
-  // Se non c'è sessione attiva, inizializzala
   if (!activeSession) {
     activeSession = {
       id: 'session_' + Date.now(),
@@ -1218,6 +1242,7 @@
     renderTodayFeed();
   }
 
+  // FAST BET
   function openFastBetModal() {
     fastSelectedAccounts = [];
     document.getElementById('fastMatch').value = '';
@@ -1325,6 +1350,58 @@
     closeFastBetModal();
   }
 
+  // ESTRAZIONE PRIMA SQUADRA E COPIA TESTO (FORMATO: SQUADRA IMPORTO@QUOTA)
+  function copyBetToClipboard(betId, btnElement, e) {
+    if (e) e.stopPropagation();
+    const session = getSelectedSession();
+    if (!session) return;
+    const bet = session.bets.find(b => b.id === betId);
+    if (!bet) return;
+
+    // Estrae la prima squadra (prima del trattino o vs)
+    let team = bet.match || 'BET';
+    if (team.includes('-')) {
+      team = team.split('-')[0];
+    } else if (team.toLowerCase().includes(' vs ')) {
+      team = team.split(/ vs /i)[0];
+    } else if (team.toLowerCase().includes(' v ')) {
+      team = team.split(/ v /i)[0];
+    }
+    team = team.trim().toUpperCase();
+
+    // Formatta l'importo (senza decimali se intero)
+    const stakeVal = Math.round(bet.totalStake) === bet.totalStake ? bet.totalStake.toFixed(0) : bet.totalStake.toFixed(2);
+    const oddsVal = parseFloat(bet.weightedOdds || 0).toFixed(2);
+
+    const formattedText = `${team} ${stakeVal}@${oddsVal}`;
+
+    navigator.clipboard.writeText(formattedText).then(() => {
+      const origText = btnElement.innerHTML;
+      btnElement.classList.add('copied');
+      btnElement.innerHTML = `✓ Copiato!`;
+      setTimeout(() => {
+        btnElement.classList.remove('copied');
+        btnElement.innerHTML = origText;
+      }, 1500);
+    }).catch(err => {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = formattedText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+
+      btnElement.classList.add('copied');
+      btnElement.innerHTML = `✓ Copiato!`;
+      setTimeout(() => {
+        btnElement.classList.remove('copied');
+        btnElement.innerHTML = `Invio`;
+      }, 1500);
+    });
+  }
+
+  // FEED STORICO
   function toggleCardExpand(betId) {
     expandedCardId = (expandedCardId === betId) ? null : betId;
     renderTodayFeed();
@@ -1367,6 +1444,7 @@
           </div>
           <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
             <span style="color:var(--text-muted); font-size:10px;">${time}</span>
+            <button class="btn-send-copy" onclick="copyBetToClipboard(${b.id}, this, event)" title="Copia nel formato SQUADRA IMPORTO@QUOTA">Invio</button>
             <button class="btn-tool" onclick="startEditBet(${b.id}, event)" style="padding:2px 5px; font-size:10px; background:#eab30822; color:#eab308; border-color:#eab30844;">✏️</button>
             <button class="btn-del" onclick="deleteSingleBet(${b.id}, event)" title="Elimina bettata" style="font-size:13px; padding:0 3px;">🗑️</button>
           </div>
@@ -1396,6 +1474,7 @@
     }
   }
 
+  // EXPORT / IMPORT
   function exportDataJson() {
     const exportBundle = {
       configRooms,
@@ -1598,7 +1677,6 @@
     doc.save(`Resoconto_${session.dateLabel.replace(/\//g, '-')}.pdf`);
   }
 
-  // AVVIO SICURO
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
