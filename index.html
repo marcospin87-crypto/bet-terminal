@@ -79,7 +79,7 @@
     
     .main-grid {
       display: grid;
-      grid-template-columns: 240px minmax(0, 1fr) 380px;
+      grid-template-columns: 240px minmax(0, 1fr) 390px;
       flex: 1;
       overflow: hidden;
       transition: grid-template-columns 0.2s ease-in-out;
@@ -240,7 +240,7 @@
     }
     .btn-register:active { transform: scale(0.97); }
 
-    /* COLONNA 3: STORICO CON SESSIONI */
+    /* COLONNA 3: STORICO CON SESSIONI & ESITI */
     .col-right {
       background: var(--bg-panel-right);
       display: flex;
@@ -257,15 +257,6 @@
       gap: 6px;
       flex-shrink: 0;
     }
-    .right-header {
-      padding: 6px 10px;
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-    }
     .day-selector-bar {
       padding: 6px 10px;
       background: var(--bg-panel-right);
@@ -274,10 +265,42 @@
       gap: 6px;
       align-items: center;
     }
+    .stats-summary-panel {
+      padding: 8px 10px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-input);
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 11px;
+    }
+    .stats-row.grand-total {
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    .right-header {
+      padding: 6px 10px;
+      background: var(--bg-panel-right);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
     .today-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
     .today-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+      border-left: 4px solid var(--border-input);
       border-radius: 8px;
       padding: 8px 10px;
       display: flex;
@@ -288,6 +311,54 @@
     }
     .today-card:hover { border-color: var(--accent-primary); }
     .today-card.expanded { border-color: var(--accent-primary); }
+    .today-card.status-win { border-left-color: #10b981; }
+    .today-card.status-loss { border-left-color: #ef4444; }
+    .today-card.status-void { border-left-color: #38bdf8; }
+
+    /* ESITO & RISULTATO */
+    .outcome-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 3px;
+      padding-top: 5px;
+      border-top: 1px solid var(--row-zebra);
+    }
+    .outcome-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .btn-outcome {
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid var(--border-input);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      transition: all 0.1s;
+    }
+    .btn-outcome:hover { color: var(--text-main); }
+    .btn-outcome.active-win { background: #10b981; color: #fff; border-color: #059669; }
+    .btn-outcome.active-loss { background: #ef4444; color: #fff; border-color: #dc2626; }
+    .btn-outcome.active-void { background: #0284c7; color: #fff; border-color: #0369a1; }
+
+    .outcome-result-box {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+    .res-win { color: #4ade80; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); }
+    .res-loss { color: #f87171; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.1); }
+    .res-void { color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); }
+    .res-pending { color: var(--text-muted); font-weight: 600; font-size: 10px; }
+
     .accounts-breakdown {
       display: none;
       background: var(--bg-input);
@@ -343,11 +414,7 @@
       transition: transform 0.05s, background 0.15s;
     }
     .btn-send-copy:active { transform: scale(0.93); filter: brightness(1.2); }
-    .btn-send-copy.copied {
-      background: #38bdf8;
-      border-color: #0284c7;
-      color: #0f172a;
-    }
+    .btn-send-copy.copied { background: #38bdf8; border-color: #0284c7; color: #0f172a; }
 
     .btn-sheet-copy {
       background: #2563eb;
@@ -365,11 +432,7 @@
       transition: transform 0.05s, background 0.15s;
     }
     .btn-sheet-copy:active { transform: scale(0.93); filter: brightness(1.2); }
-    .btn-sheet-copy.copied {
-      background: #38bdf8;
-      border-color: #0284c7;
-      color: #0f172a;
-    }
+    .btn-sheet-copy.copied { background: #38bdf8; border-color: #0284c7; color: #0f172a; }
 
     /* MODAL */
     .modal-overlay {
@@ -529,9 +592,27 @@
         <select id="selectDayView" class="dark-input" style="flex:1; padding:3px 6px; font-size:11px;" onchange="changeDayView(this.value)"></select>
       </div>
 
+      <!-- PANNELLO RIEPILOGO GIORNATA + GRAN TOTALE -->
+      <div class="stats-summary-panel">
+        <div class="stats-row">
+          <span style="color:var(--text-muted); font-weight:800;">GIORNATA</span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span>Bettato: <b style="color:var(--accent-primary);" id="dayStakeTotal">€ 0.00</b></span>
+            <span>Bilancio: <b id="dayNetProfit">€ 0.00</b></span>
+          </div>
+        </div>
+        <div class="stats-row grand-total">
+          <span style="color:var(--accent-primary); font-weight:900;">GRAN TOTALE</span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span>Bettato: <b style="color:var(--text-main);" id="grandStakeTotal">€ 0.00</b></span>
+            <span>Bilancio: <b id="grandNetProfit">€ 0.00</b></span>
+          </div>
+        </div>
+      </div>
+
       <div class="right-header">
         <div>
-          <div style="font-size:11px; font-weight:800;" id="viewStatsLabel">0 bettate | € 0.00</div>
+          <div style="font-size:10px; font-weight:700; color:var(--text-muted);" id="viewStatsLabel">0 bettate nella giornata</div>
         </div>
         <div style="display:flex; gap:4px;">
           <button class="btn-tool" onclick="exportSelectedDayPdf()" style="background:#ef4444; color:#fff; font-weight:bold; padding:2px 6px;">📄 PDF</button>
@@ -653,7 +734,7 @@
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v11';
+      const CACHE_NAME = 'bet-terminal-v12';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -761,6 +842,70 @@
     renderRooms();
     renderModalList();
     saveAll();
+  }
+
+  // CALCOLO ESITO SINGOLA BETTATA
+  function calcBetResult(bet) {
+    const stake = parseFloat(bet.totalStake) || 0;
+    const odds = parseFloat(bet.weightedOdds) || 0;
+    const outcome = bet.outcome || 'pending';
+
+    if (outcome === 'win') {
+      const payout = stake * odds;
+      const net = payout - stake;
+      return { outcome, payout, net };
+    } else if (outcome === 'loss') {
+      return { outcome, payout: 0, net: -stake };
+    } else if (outcome === 'void') {
+      return { outcome, payout: stake, net: 0 };
+    }
+    return { outcome: 'pending', payout: 0, net: 0 };
+  }
+
+  function setBetOutcome(betId, newOutcome, e) {
+    if (e) e.stopPropagation();
+    const session = getSelectedSession();
+    if (!session) return;
+    const bet = session.bets.find(b => b.id === betId);
+    if (!bet) return;
+
+    // Se clicco l'esito già attivo, lo rimette in pending
+    bet.outcome = (bet.outcome === newOutcome) ? 'pending' : newOutcome;
+    saveSessions();
+    renderTodayFeed();
+  }
+
+  function updateGlobalAndDayStats() {
+    const session = getSelectedSession();
+    let dayStake = 0, dayNet = 0;
+
+    if (session && session.bets) {
+      session.bets.forEach(b => {
+        dayStake += (parseFloat(b.totalStake) || 0);
+        dayNet += calcBetResult(b).net;
+      });
+    }
+
+    let grandStake = 0, grandNet = 0;
+    const allSessions = [...(activeSession ? [activeSession] : []), ...archivedDays];
+    allSessions.forEach(s => {
+      if (s && s.bets) {
+        s.bets.forEach(b => {
+          grandStake += (parseFloat(b.totalStake) || 0);
+          grandNet += calcBetResult(b).net;
+        });
+      }
+    });
+
+    document.getElementById('dayStakeTotal').textContent = `€ ${dayStake.toFixed(2)}`;
+    const dayNetEl = document.getElementById('dayNetProfit');
+    dayNetEl.textContent = `${dayNet > 0 ? '+' : ''}€ ${dayNet.toFixed(2)}`;
+    dayNetEl.style.color = dayNet > 0 ? '#4ade80' : (dayNet < 0 ? '#f87171' : 'var(--text-muted)');
+
+    document.getElementById('grandStakeTotal').textContent = `€ ${grandStake.toFixed(2)}`;
+    const grandNetEl = document.getElementById('grandNetProfit');
+    grandNetEl.textContent = `${grandNet > 0 ? '+' : ''}€ ${grandNet.toFixed(2)}`;
+    grandNetEl.style.color = grandNet > 0 ? '#4ade80' : (grandNet < 0 ? '#f87171' : 'var(--text-muted)');
   }
 
   function startNewSession() {
@@ -1250,7 +1395,8 @@
         weightedOdds: totStake > 0 ? (totReturn / totStake) : 0,
         totalReturn: totReturn,
         entries: JSON.parse(JSON.stringify(activeEntries)),
-        isFast: false
+        isFast: false,
+        outcome: 'pending'
       };
       activeSession.bets.unshift(record);
       selectedViewSessionId = activeSession.id;
@@ -1357,7 +1503,8 @@
       weightedOdds: odds,
       totalReturn: stake * odds,
       entries: entries,
-      isFast: true
+      isFast: true,
+      outcome: 'pending'
     };
 
     activeSession.bets.unshift(record);
@@ -1369,7 +1516,6 @@
     closeFastBetModal();
   }
 
-  // ESTRAZIONE PRIMA SQUADRA E COPIA TESTO (FORMATO: SQUADRA IMPORTO@QUOTA)
   function copyBetToClipboard(betId, btnElement, e) {
     if (e) e.stopPropagation();
     const session = getSelectedSession();
@@ -1391,11 +1537,9 @@
     const oddsVal = parseFloat(bet.weightedOdds || 0).toFixed(2);
 
     const formattedText = `${team} ${stakeVal}@${oddsVal}`;
-
     copyTextWithFeedback(formattedText, btnElement, 'Invio');
   }
 
-  // COPIA PER FOGLIO GOOGLE (A+B=Match, C=Pronostico, D=Importo, E=Quota)
   function copyBetForGoogleSheet(betId, btnElement, e) {
     if (e) e.stopPropagation();
     const session = getSelectedSession();
@@ -1408,9 +1552,7 @@
     const stakeVal = Math.round(bet.totalStake) === bet.totalStake ? bet.totalStake.toFixed(0) : bet.totalStake.toFixed(2);
     const oddsVal = parseFloat(bet.weightedOdds || 0).toFixed(2).replace('.', ',');
 
-    // Due tabulazioni per coprire la cella unita A+B, poi C (Pronostico), D (Importo), E (Quota)
     const tsvText = `${matchVal}\t\t${marketVal}\t${stakeVal}\t${oddsVal}`;
-
     copyTextWithFeedback(tsvText, btnElement, 'Foglio');
   }
 
@@ -1448,23 +1590,34 @@
     const cont = document.getElementById('todayFeed');
     cont.innerHTML = '';
 
+    updateGlobalAndDayStats();
+
     const session = getSelectedSession();
     if (!session || !session.bets || session.bets.length === 0) {
-      document.getElementById('viewStatsLabel').textContent = '0 bettate | € 0.00';
+      document.getElementById('viewStatsLabel').textContent = '0 bettate nella giornata';
       cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:20px;">Nessuna bettata in questa giornata</div>`;
       return;
     }
 
-    let dayStake = 0;
-    session.bets.forEach(b => dayStake += b.totalStake);
-    document.getElementById('viewStatsLabel').textContent = `${session.bets.length} bettate | € ${dayStake.toFixed(2)}`;
+    document.getElementById('viewStatsLabel').textContent = `${session.bets.length} bettate nella giornata`;
 
     session.bets.forEach(b => {
       const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       const isExpanded = (expandedCardId === b.id);
+      const res = calcBetResult(b);
+
       const card = document.createElement('div');
-      card.className = `today-card ${isExpanded ? 'expanded' : ''}`;
+      card.className = `today-card ${isExpanded ? 'expanded' : ''} ${res.outcome !== 'pending' ? 'status-' + res.outcome : ''}`;
       card.onclick = () => toggleCardExpand(b.id);
+
+      let resultHtml = `<span class="outcome-result-box res-pending">In attesa</span>`;
+      if (res.outcome === 'win') {
+        resultHtml = `<span class="outcome-result-box res-win">€ ${res.payout.toFixed(2)} (+${res.net.toFixed(2)})</span>`;
+      } else if (res.outcome === 'loss') {
+        resultHtml = `<span class="outcome-result-box res-loss">€ 0.00 (-${Math.abs(res.net).toFixed(2)})</span>`;
+      } else if (res.outcome === 'void') {
+        resultHtml = `<span class="outcome-result-box res-void">€ ${res.payout.toFixed(2)} (Rimb.)</span>`;
+      }
 
       let accountsRows = b.entries.map(e => `
         <div class="acc-detail-row">
@@ -1482,7 +1635,7 @@
           <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
             <span style="color:var(--text-muted); font-size:10px; margin-right:2px;">${time}</span>
             <button class="btn-send-copy" onclick="copyBetToClipboard(${b.id}, this, event)" title="Copia: SQUADRA IMPORTO@QUOTA">Invio</button>
-            <button class="btn-sheet-copy" onclick="copyBetForGoogleSheet(${b.id}, this, event)" title="Copia per Foglio Google (A-B Match, C Prono, D Importo, E Quota)">Foglio</button>
+            <button class="btn-sheet-copy" onclick="copyBetForGoogleSheet(${b.id}, this, event)" title="Copia per Foglio Google">Foglio</button>
             <button class="btn-tool" onclick="startEditBet(${b.id}, event)" style="padding:2px 5px; font-size:10px; background:#eab30822; color:#eab308; border-color:#eab30844;">✏️</button>
             <button class="btn-del" onclick="deleteSingleBet(${b.id}, event)" title="Elimina bettata" style="font-size:13px; padding:0 2px;">🗑️</button>
           </div>
@@ -1492,6 +1645,14 @@
           <span style="color:#10b981;">€ ${b.totalStake.toFixed(2)}</span>
           <span style="color:#eab308;">@ ${b.weightedOdds.toFixed(2)}</span>
           <span style="color:var(--text-muted); font-size:10px;">(${b.entries.length}) ${isExpanded ? '▲' : '▼'}</span>
+        </div>
+        <div class="outcome-bar" onclick="event.stopPropagation()">
+          <div class="outcome-btns">
+            <button class="btn-outcome ${res.outcome === 'win' ? 'active-win' : ''}" onclick="setBetOutcome(${b.id}, 'win', event)">✓ Vinta</button>
+            <button class="btn-outcome ${res.outcome === 'loss' ? 'active-loss' : ''}" onclick="setBetOutcome(${b.id}, 'loss', event)">✕ Persa</button>
+            <button class="btn-outcome ${res.outcome === 'void' ? 'active-void' : ''}" onclick="setBetOutcome(${b.id}, 'void', event)">↺ Rimb.</button>
+          </div>
+          ${resultHtml}
         </div>
         <div class="accounts-breakdown" style="display: ${isExpanded ? 'flex' : 'none'};">
           ${accountsRows}
@@ -1604,11 +1765,13 @@
       alert("Nessuna bettata nella giornata selezionata da esportare in CSV!");
       return;
     }
-    let csv = "Giornata;DataOra;Tipo;Match;Pronostico;ImportoTotale;QuotaPonderata;RitornoTotale;DettaglioConti\n";
+    let csv = "Giornata;DataOra;Tipo;Match;Pronostico;ImportoTotale;QuotaPonderata;Esito;Incasso;BilancioNetto;DettaglioConti\n";
     session.bets.forEach(b => {
       const tipo = b.isFast ? 'FAST' : 'STANDARD';
+      const res = calcBetResult(b);
+      const esitoLbl = res.outcome === 'win' ? 'VINCENTE' : (res.outcome === 'loss' ? 'PERDENTE' : (res.outcome === 'void' ? 'RIMBORSATA' : 'IN ATTESA'));
       const contiStr = b.entries.map(e => `${e.account}(${e.stake}€@${e.odds})`).join(" | ");
-      csv += `"${session.dateLabel}";"${b.date}";"${tipo}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${b.totalReturn}";"${contiStr}"\n`;
+      csv += `"${session.dateLabel}";"${b.date}";"${tipo}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${esitoLbl}";"${res.payout.toFixed(2)}";"${res.net.toFixed(2)}";"${contiStr}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -1640,11 +1803,14 @@
 
     let startY = 32;
     let dayTotalStake = 0;
-    let dayTotalReturn = 0;
+    let dayTotalPayout = 0;
+    let dayTotalNet = 0;
 
     session.bets.forEach((b, index) => {
+      const res = calcBetResult(b);
       dayTotalStake += b.totalStake;
-      dayTotalReturn += b.totalReturn;
+      dayTotalPayout += res.payout;
+      dayTotalNet += res.net;
 
       if (startY > 250) {
         doc.addPage();
@@ -1652,13 +1818,14 @@
       }
 
       const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      const esitoTag = res.outcome === 'win' ? '[VINTA]' : (res.outcome === 'loss' ? '[PERSA]' : (res.outcome === 'void' ? '[RIMBORSATA]' : '[IN ATTESA]'));
       doc.setFillColor(241, 245, 249);
       doc.rect(14, startY, 182, 8, 'F');
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       const tag = b.isFast ? '[FAST] ' : '';
-      doc.text(`#${index + 1}  ${tag}${b.match} - [${b.market}] (${time})`, 16, startY + 5.5);
+      doc.text(`#${index + 1}  ${tag}${b.match} - [${b.market}] (${time})  ${esitoTag}`, 16, startY + 5.5);
 
       startY += 10;
 
@@ -1674,12 +1841,12 @@
         { content: 'TOTALE BETTATA', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
         { content: `€ ${b.totalStake.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
         { content: `@ ${b.weightedOdds.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
-        { content: `€ ${b.totalReturn.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } }
+        { content: `Esito: € ${res.payout.toFixed(2)} (${res.net >= 0 ? '+' : ''}${res.net.toFixed(2)})`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } }
       ]);
 
       doc.autoTable({
         startY: startY,
-        head: [['Conto', 'Room', 'Importo', 'Quota', 'Ritorno Potenziale']],
+        head: [['Conto', 'Room', 'Importo', 'Quota', 'Ritorno / Esito']],
         body: tableRows,
         theme: 'grid',
         headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
@@ -1696,7 +1863,6 @@
       startY = 20;
     }
 
-    const netProfit = dayTotalReturn - dayTotalStake;
     doc.setFillColor(15, 23, 42);
     doc.roundedRect(14, startY, 182, 20, 2, 2, 'F');
     doc.setTextColor(255, 255, 255);
@@ -1705,11 +1871,11 @@
     doc.text(`RIEPILOGO GIORNATA (${session.dateLabel}):`, 18, startY + 8);
     
     doc.setTextColor(56, 189, 248);
-    doc.text(`Totale Puntato: € ${dayTotalStake.toFixed(2)}`, 18, startY + 15);
+    doc.text(`Totale Bettato: € ${dayTotalStake.toFixed(2)}`, 18, startY + 15);
     doc.setTextColor(250, 204, 21);
-    doc.text(`Ritorno Lordo: € ${dayTotalReturn.toFixed(2)}`, 85, startY + 15);
-    doc.setTextColor(74, 222, 128);
-    doc.text(`Profitto Netto: € ${netProfit.toFixed(2)}`, 150, startY + 15);
+    doc.text(`Incassato: € ${dayTotalPayout.toFixed(2)}`, 85, startY + 15);
+    doc.setTextColor(dayTotalNet >= 0 ? 74 : 248, dayTotalNet >= 0 ? 222 : 113, dayTotalNet >= 0 ? 128 : 113);
+    doc.text(`Bilancio Netto: ${dayTotalNet >= 0 ? '+' : ''}€ ${dayTotalNet.toFixed(2)}`, 145, startY + 15);
 
     doc.save(`Resoconto_${session.dateLabel.replace(/\//g, '-')}.pdf`);
   }
