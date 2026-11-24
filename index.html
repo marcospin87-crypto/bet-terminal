@@ -79,7 +79,7 @@
     
     .main-grid {
       display: grid;
-      grid-template-columns: 240px minmax(0, 1fr) 390px;
+      grid-template-columns: 240px minmax(0, 1fr) 400px;
       flex: 1;
       overflow: hidden;
       transition: grid-template-columns 0.2s ease-in-out;
@@ -129,6 +129,7 @@
     }
     .match-header-inputs {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
       padding: 8px 12px;
       background: var(--bg-card);
@@ -240,7 +241,7 @@
     }
     .btn-register:active { transform: scale(0.97); }
 
-    /* COLONNA 3: STORICO CON SESSIONI & ESITI */
+    /* COLONNA 3: STORICO CON SESSIONI, ESITI E GRAN TOTALE */
     .col-right {
       background: var(--bg-panel-right);
       display: flex;
@@ -283,9 +284,31 @@
       border-radius: 6px;
       border: 1px solid var(--border-color);
       font-size: 11px;
+      gap: 6px;
     }
     .stats-row.grand-total {
       border-color: rgba(56, 189, 248, 0.35);
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+    }
+    .gt-filter-bar {
+      display: none;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding-top: 5px;
+      border-top: 1px solid var(--row-zebra);
+      align-items: center;
+    }
+    .gt-filter-bar.open { display: flex; }
+    .gt-date-inp {
+      background: var(--bg-card);
+      border: 1px solid var(--border-input);
+      color: var(--text-main);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 10px;
+      outline: none;
     }
     .right-header {
       padding: 6px 10px;
@@ -314,6 +337,20 @@
     .today-card.status-win { border-left-color: #10b981; }
     .today-card.status-loss { border-left-color: #ef4444; }
     .today-card.status-void { border-left-color: #38bdf8; }
+
+    /* PROGETTO BADGE */
+    .project-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
 
     /* ESITO & RISULTATO */
     .outcome-bar {
@@ -509,6 +546,21 @@
       border-color: #38bdf8;
       box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
     }
+
+    /* LISTA ASSEGNAZIONE BETTATE A PROGETTO */
+    .assign-bet-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .assign-bet-item:hover { border-color: var(--accent-primary); }
   </style>
 </head>
 <body>
@@ -521,6 +573,7 @@
     </div>
     <div style="display:flex; gap:6px; align-items:center;">
       <button class="btn-tool" onclick="openFastBetModal()" style="background:#eab308; color:#0f172a; font-weight:900; border-color:#ca8a04;">⚡ Fast Bet</button>
+      <button class="btn-tool" onclick="openProjectsModal()" style="background:#7c3aed; color:#fff; font-weight:800; border-color:#6d28d9;">📁 Progetti</button>
       <button id="btnPwaInstall" class="btn-tool" style="display:none; background:#10b981; color:#fff; font-weight:bold; border-color:#059669;">📲 Installa</button>
       <button class="btn-tool" onclick="openConfigModal()" style="background:#2563eb; color:#fff; border-color:#3b82f6;">⚙️ Opzioni & Conti</button>
       <button class="btn-tool" onclick="triggerImportJson()">📥 Carica</button>
@@ -543,8 +596,9 @@
     <section class="col-center">
       <div class="match-header-inputs">
         <span id="editingTag" class="editing-banner">✏️ MODIFICA</span>
-        <input type="text" id="matchInput" class="dark-input" style="flex:2;" placeholder="Match (es: Real Betis - Malaga)" autocomplete="off">
-        <input type="text" id="marketInput" class="dark-input" style="flex:1.2;" placeholder="Pronostico (es: Under 3.5 Corner Sq2)" autocomplete="off">
+        <input type="text" id="matchInput" class="dark-input" style="flex:2; min-width:160px;" placeholder="Match (es: Real Betis - Malaga)" autocomplete="off">
+        <input type="text" id="marketInput" class="dark-input" style="flex:1.2; min-width:130px;" placeholder="Pronostico (es: Over 2.5)" autocomplete="off">
+        <select id="betProjectSelect" class="dark-input" style="max-width:145px; font-size:12px;" title="Assegna a un progetto"></select>
         <button class="btn-tool" onclick="setEqualStake()" style="background:#1e293b; color:#38bdf8;">= Importo</button>
         <button class="btn-tool" onclick="setEqualOdds()" style="background:#1e293b; color:#eab308;">= Quota</button>
         <button class="btn-tool" id="btnCancelEdit" onclick="cancelEditMode()" style="display:none; color:#eab308;">Annulla</button>
@@ -592,7 +646,7 @@
         <select id="selectDayView" class="dark-input" style="flex:1; padding:3px 6px; font-size:11px;" onchange="changeDayView(this.value)"></select>
       </div>
 
-      <!-- PANNELLO RIEPILOGO GIORNATA + GRAN TOTALE -->
+      <!-- PANNELLO RIEPILOGO GIORNATA + GRAN TOTALE CON FILTRI E AZZERA -->
       <div class="stats-summary-panel">
         <div class="stats-row">
           <span style="color:var(--text-muted); font-weight:800;">GIORNATA</span>
@@ -601,11 +655,29 @@
             <span>Bilancio: <b id="dayNetProfit">€ 0.00</b></span>
           </div>
         </div>
+
         <div class="stats-row grand-total">
-          <span style="color:var(--accent-primary); font-weight:900;">GRAN TOTALE</span>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <span>Bettato: <b style="color:var(--text-main);" id="grandStakeTotal">€ 0.00</b></span>
-            <span>Bilancio: <b id="grandNetProfit">€ 0.00</b></span>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="color:var(--accent-primary); font-weight:900;">GRAN TOTALE</span>
+              <button class="btn-tool" onclick="toggleGtFilters()" title="Filtra per data o progetto" style="padding:1px 5px; font-size:10px;">📅</button>
+              <button class="btn-tool" onclick="resetGrandTotal()" title="Azzera il contatore Gran Totale da adesso" style="padding:1px 5px; font-size:9px; color:#f87171;">Azzera</button>
+              <button class="btn-tool" id="btnRestoreGt" onclick="restoreGrandTotal()" title="Ripristina tutto lo storico nel Gran Totale" style="display:none; padding:1px 5px; font-size:9px; color:#4ade80;">↺</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span>Bettato: <b style="color:var(--text-main);" id="grandStakeTotal">€ 0.00</b></span>
+              <span>Bilancio: <b id="grandNetProfit">€ 0.00</b></span>
+            </div>
+          </div>
+
+          <!-- BARRA FILTRI PERIODO & PROGETTO -->
+          <div class="gt-filter-bar" id="gtFilterBar">
+            <span style="font-size:10px; color:var(--text-muted);">Dal</span>
+            <input type="date" id="gtDateFrom" class="gt-date-inp" onchange="updateGlobalAndDayStats()">
+            <span style="font-size:10px; color:var(--text-muted);">Al</span>
+            <input type="date" id="gtDateTo" class="gt-date-inp" onchange="updateGlobalAndDayStats()">
+            <select id="gtProjectFilter" class="gt-date-inp" style="flex:1; min-width:85px;" onchange="updateGlobalAndDayStats()"></select>
+            <button class="btn-tool" onclick="clearGtDateFilters()" title="Pulisci filtri" style="padding:1px 5px; font-size:10px;">✕</button>
           </div>
         </div>
       </div>
@@ -626,6 +698,39 @@
   </main>
 </div>
 
+<!-- MODAL PROGETTI -->
+<div class="modal-overlay" id="projectsModal">
+  <div class="modal-content" style="width: 720px;">
+    <div class="modal-header" style="background:#7c3aed22; border-bottom:1px solid #7c3aed55;">
+      <span style="color:#c4b5fd;">📁 GESTIONE PROGETTI & ASSEGNAZIONE BETTATE</span>
+      <button class="btn-del" onclick="closeProjectsModal()" style="font-size:18px;">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="manage-section">
+        <h4>1. Crea Nuovo Progetto</h4>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="newProjectName" class="dark-input" placeholder="Nome Progetto (es: Corner Live, Serie A, Value)" style="flex:2;">
+          <input type="color" id="newProjectColor" value="#8b5cf6" style="height:34px; width:45px; border:none; border-radius:6px; cursor:pointer; background:none;">
+          <button class="btn-tool" style="background:#7c3aed; color:#fff; font-weight:bold;" onclick="addNewProject()">+ Crea Progetto</button>
+        </div>
+      </div>
+
+      <div class="manage-section">
+        <h4>2. I Tuoi Progetti (Riepilogo & Gestione)</h4>
+        <div id="projectsListContainer" style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto;"></div>
+      </div>
+
+      <div class="manage-section" id="assignBetsSection" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h4 style="margin:0;" id="assignProjectTitle">Assegna bettate al progetto</h4>
+          <button class="btn-tool" onclick="closeAssignSection()" style="font-size:10px;">Chiudi elenco</button>
+        </div>
+        <div id="assignBetsList" style="display:flex; flex-direction:column; gap:5px; max-height:210px; overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL FAST BET -->
 <div class="modal-overlay" id="fastBetModal">
   <div class="modal-content" style="width: 580px;">
@@ -637,6 +742,11 @@
       <div style="display:flex; gap:8px;">
         <input type="text" id="fastMatch" class="dark-input" placeholder="Nome Match (es: Roma - Lazio)" style="flex:2;" autocomplete="off">
         <input type="text" id="fastMarket" class="dark-input" placeholder="Pronostico (es: 1X)" style="flex:1.2;" autocomplete="off">
+      </div>
+
+      <div>
+        <label style="font-size:11px; font-weight:800; color:#c4b5fd; display:block; margin-bottom:4px;">PROGETTO (OPZIONALE)</label>
+        <select id="fastProjectSelect" class="dark-input" style="width:100%;"></select>
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background:var(--bg-card); padding:10px; border-radius:8px; border:1px solid var(--border-color);">
@@ -655,7 +765,7 @@
           <h4 style="margin:0;">Seleziona i Conti Usati:</h4>
           <span style="font-size:11px; color:var(--text-muted);" id="fastSelectedCount">0 conti selezionati</span>
         </div>
-        <div id="fastAccountsContainer" style="display:flex; flex-wrap:wrap; gap:6px; max-height:160px; overflow-y:auto; padding:4px;"></div>
+        <div id="fastAccountsContainer" style="display:flex; flex-wrap:wrap; gap:6px; max-height:140px; overflow-y:auto; padding:4px;"></div>
       </div>
 
       <div id="fastPreviewBox" style="background:var(--bg-input); padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); font-size:12px; display:flex; justify-content:space-between; align-items:center;">
@@ -734,7 +844,7 @@
 
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'bet-terminal-v12';
+      const CACHE_NAME = 'bet-terminal-v13';
       self.addEventListener('install', e => {
         e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', location.href])));
         self.skipWaiting();
@@ -776,9 +886,18 @@
   try {
     const savedRooms = localStorage.getItem('bet_terminal_rooms');
     if (savedRooms) configRooms = JSON.parse(savedRooms);
-  } catch(e) {
-    configRooms = DEFAULT_ROOMS;
-  }
+  } catch(e) { configRooms = DEFAULT_ROOMS; }
+
+  let configProjects = [];
+  try {
+    const savedProjects = localStorage.getItem('bet_terminal_projects');
+    if (savedProjects) configProjects = JSON.parse(savedProjects);
+  } catch(e) { configProjects = []; }
+
+  let grandTotalResetAt = null;
+  try {
+    grandTotalResetAt = localStorage.getItem('bet_terminal_gt_reset') || null;
+  } catch(e) {}
 
   let currentTheme = 'dark';
   try { currentTheme = localStorage.getItem('bet_terminal_theme') || 'dark'; } catch(e) {}
@@ -811,10 +930,12 @@
   let expandedCardId = null;
   let isSidebarOpen = true;
   let fastSelectedAccounts = [];
+  let assigningProjectId = null;
 
   function init() {
     try { applyTheme(currentTheme); } catch(e) {}
     try { renderRooms(); } catch(e) {}
+    try { populateAllProjectSelects(); } catch(e) {}
     try { renderActiveTable(); } catch(e) {}
     try { updateSessionControls(); } catch(e) {}
     try { renderDaySelector(); } catch(e) {}
@@ -828,10 +949,22 @@
     } catch(e) {}
   }
 
+  function saveProjects() {
+    try {
+      localStorage.setItem('bet_terminal_projects', JSON.stringify(configProjects));
+    } catch(e) {}
+    populateAllProjectSelects();
+    renderProjectsModalList();
+    renderTodayFeed();
+  }
+
   function saveAll() {
     saveSessions();
     try {
       localStorage.setItem('bet_terminal_rooms', JSON.stringify(configRooms));
+      localStorage.setItem('bet_terminal_projects', JSON.stringify(configProjects));
+      if (grandTotalResetAt) localStorage.setItem('bet_terminal_gt_reset', grandTotalResetAt);
+      else localStorage.removeItem('bet_terminal_gt_reset');
     } catch(e) {}
   }
 
@@ -869,10 +1002,242 @@
     const bet = session.bets.find(b => b.id === betId);
     if (!bet) return;
 
-    // Se clicco l'esito già attivo, lo rimette in pending
     bet.outcome = (bet.outcome === newOutcome) ? 'pending' : newOutcome;
     saveSessions();
     renderTodayFeed();
+  }
+
+  // GESTIONE PROGETTI
+  function getProjectById(pid) {
+    if (!pid) return null;
+    return configProjects.find(p => p.id === pid) || null;
+  }
+
+  function populateAllProjectSelects() {
+    const ids = ['betProjectSelect', 'fastProjectSelect', 'gtProjectFilter'];
+    ids.forEach(elId => {
+      const sel = document.getElementById(elId);
+      if (!sel) return;
+      const prev = sel.value;
+      sel.innerHTML = '';
+
+      const defOpt = document.createElement('option');
+      defOpt.value = '';
+      defOpt.textContent = elId === 'gtProjectFilter' ? 'Tutti i progetti' : 'Nessun progetto';
+      sel.appendChild(defOpt);
+
+      configProjects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `📁 ${p.name}`;
+        sel.appendChild(opt);
+      });
+
+      if (prev && (prev === '' || configProjects.some(p => p.id === prev))) {
+        sel.value = prev;
+      }
+    });
+  }
+
+  function openProjectsModal() {
+    assigningProjectId = null;
+    document.getElementById('assignBetsSection').style.display = 'none';
+    renderProjectsModalList();
+    document.getElementById('projectsModal').style.display = 'flex';
+  }
+
+  function closeProjectsModal() {
+    document.getElementById('projectsModal').style.display = 'none';
+  }
+
+  function addNewProject() {
+    const name = document.getElementById('newProjectName').value.trim();
+    const color = document.getElementById('newProjectColor').value;
+    if (!name) return alert("Inserisci il nome del progetto!");
+    if (configProjects.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      return alert("Esiste già un progetto con questo nome!");
+    }
+    configProjects.push({ id: 'proj_' + Date.now(), name, color });
+    document.getElementById('newProjectName').value = '';
+    saveProjects();
+  }
+
+  function deleteProject(projId) {
+    const p = getProjectById(projId);
+    if (!p) return;
+    if (!confirm(`Eliminare il progetto "${p.name}"? Le bettate rimarranno nello storico ma senza progetto.`)) return;
+    configProjects = configProjects.filter(x => x.id !== projId);
+    const allSessions = [...(activeSession ? [activeSession] : []), ...archivedDays];
+    allSessions.forEach(s => {
+      if (s && s.bets) {
+        s.bets.forEach(b => { if (b.projectId === projId) b.projectId = ''; });
+      }
+    });
+    if (assigningProjectId === projId) closeAssignSection();
+    saveSessions();
+    saveProjects();
+  }
+
+  function getAllBetsWithSession() {
+    const list = [];
+    const allSessions = [...(activeSession ? [activeSession] : []), ...archivedDays];
+    allSessions.forEach(s => {
+      if (s && s.bets) {
+        s.bets.forEach(b => list.push({ bet: b, sessionLabel: s.dateLabel }));
+      }
+    });
+    return list;
+  }
+
+  function renderProjectsModalList() {
+    const cont = document.getElementById('projectsListContainer');
+    cont.innerHTML = '';
+
+    if (configProjects.length === 0) {
+      cont.innerHTML = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:10px;">Nessun progetto creato. Creane uno qui sopra!</div>`;
+      return;
+    }
+
+    const allBets = getAllBetsWithSession();
+
+    configProjects.forEach(p => {
+      const pBets = allBets.filter(item => item.bet.projectId === p.id);
+      let totStake = 0, totNet = 0;
+      pBets.forEach(item => {
+        totStake += (parseFloat(item.bet.totalStake) || 0);
+        totNet += calcBetResult(item.bet).net;
+      });
+
+      const netColor = totNet > 0 ? '#4ade80' : (totNet < 0 ? '#f87171' : 'var(--text-muted)');
+
+      const row = document.createElement('div');
+      row.style.background = 'var(--bg-input)';
+      row.style.padding = '8px 10px';
+      row.style.borderRadius = '6px';
+      row.style.borderLeft = `4px solid ${p.color}`;
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      row.style.gap = '8px';
+
+      row.innerHTML = `
+        <div>
+          <div style="font-weight:800; font-size:13px; color:${p.color};">📁 ${p.name}</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+            ${pBets.length} bettate | Bettato: <b style="color:var(--text-main);">€ ${totStake.toFixed(2)}</b> | Bilancio: <b style="color:${netColor};">${totNet > 0 ? '+' : ''}€ ${totNet.toFixed(2)}</b>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button class="btn-tool" onclick="openAssignBetsToProject('${p.id}')" style="background:#7c3aed33; color:#c4b5fd; border-color:#7c3aed66;">✓ Assegna bettate</button>
+          <button class="btn-del" onclick="deleteProject('${p.id}')" title="Elimina progetto" style="font-size:14px;">🗑️</button>
+        </div>
+      `;
+      cont.appendChild(row);
+    });
+  }
+
+  function openAssignBetsToProject(projId) {
+    assigningProjectId = projId;
+    const p = getProjectById(projId);
+    if (!p) return;
+    document.getElementById('assignProjectTitle').textContent = `Seleziona le bettate da assegnare a: ${p.name}`;
+    document.getElementById('assignBetsSection').style.display = 'block';
+    renderAssignBetsList();
+  }
+
+  function closeAssignSection() {
+    assigningProjectId = null;
+    document.getElementById('assignBetsSection').style.display = 'none';
+  }
+
+  function renderAssignBetsList() {
+    const cont = document.getElementById('assignBetsList');
+    cont.innerHTML = '';
+    const allBets = getAllBetsWithSession();
+
+    if (allBets.length === 0) {
+      cont.innerHTML = `<div style="color:var(--text-muted); font-size:12px;">Nessuna bettata registrata.</div>`;
+      return;
+    }
+
+    allBets.forEach(({ bet, sessionLabel }) => {
+      const isChecked = bet.projectId === assigningProjectId;
+      const currentProj = getProjectById(bet.projectId);
+      const item = document.createElement('label');
+      item.className = 'assign-bet-item';
+      item.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+          <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleBetProjectAssignment(${bet.id}, this.checked)" style="width:15px; height:15px; cursor:pointer;">
+          <div style="overflow:hidden;">
+            <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${bet.match} <span style="color:var(--accent-primary); font-weight:600;">(${bet.market})</span></div>
+            <div style="font-size:10px; color:var(--text-muted);">${sessionLabel} | € ${bet.totalStake.toFixed(2)} @ ${bet.weightedOdds.toFixed(2)}</div>
+          </div>
+        </div>
+        <div>
+          ${currentProj ? `<span class="project-badge" style="background:${currentProj.color}33; color:${currentProj.color}; border-color:${currentProj.color}66;">${currentProj.name}</span>` : '<span style="font-size:10px; color:var(--text-muted);">Nessuno</span>'}
+        </div>
+      `;
+      cont.appendChild(item);
+    });
+  }
+
+  function toggleBetProjectAssignment(betId, isChecked) {
+    const allBets = getAllBetsWithSession();
+    const found = allBets.find(x => x.bet.id === betId);
+    if (!found) return;
+    found.bet.projectId = isChecked ? assigningProjectId : '';
+    saveSessions();
+    renderProjectsModalList();
+    renderAssignBetsList();
+    renderTodayFeed();
+  }
+
+  function quickCycleBetProject(betId, e) {
+    if (e) e.stopPropagation();
+    if (configProjects.length === 0) {
+      openProjectsModal();
+      return;
+    }
+    const session = getSelectedSession();
+    if (!session) return;
+    const bet = session.bets.find(b => b.id === betId);
+    if (!bet) return;
+
+    const idx = configProjects.findIndex(p => p.id === bet.projectId);
+    if (idx === -1) bet.projectId = configProjects[0].id;
+    else if (idx + 1 < configProjects.length) bet.projectId = configProjects[idx + 1].id;
+    else bet.projectId = '';
+
+    saveSessions();
+    renderTodayFeed();
+  }
+
+  // FILTRI & AZZERAMENTO GRAN TOTALE
+  function toggleGtFilters() {
+    document.getElementById('gtFilterBar').classList.toggle('open');
+  }
+
+  function clearGtDateFilters() {
+    document.getElementById('gtDateFrom').value = '';
+    document.getElementById('gtDateTo').value = '';
+    document.getElementById('gtProjectFilter').value = '';
+    updateGlobalAndDayStats();
+  }
+
+  function resetGrandTotal() {
+    if (confirm("Vuoi azzerare il Gran Totale a partire da questo momento?\n(Le bettate passate rimarranno comunque salvate nello storico e potrai ripristinare il totale in qualsiasi momento con il tasto ↺).")) {
+      grandTotalResetAt = new Date().toISOString();
+      try { localStorage.setItem('bet_terminal_gt_reset', grandTotalResetAt); } catch(e) {}
+      updateGlobalAndDayStats();
+    }
+  }
+
+  function restoreGrandTotal() {
+    if (confirm("Ripristinare tutte le bettate storiche nel calcolo del Gran Totale?")) {
+      grandTotalResetAt = null;
+      try { localStorage.removeItem('bet_terminal_gt_reset'); } catch(e) {}
+      updateGlobalAndDayStats();
+    }
   }
 
   function updateGlobalAndDayStats() {
@@ -886,11 +1251,29 @@
       });
     }
 
+    const fromVal = document.getElementById('gtDateFrom')?.value || '';
+    const toVal = document.getElementById('gtDateTo')?.value || '';
+    const projFilter = document.getElementById('gtProjectFilter')?.value || '';
+
+    const btnRestore = document.getElementById('btnRestoreGt');
+    if (btnRestore) btnRestore.style.display = grandTotalResetAt ? 'inline-flex' : 'none';
+
     let grandStake = 0, grandNet = 0;
     const allSessions = [...(activeSession ? [activeSession] : []), ...archivedDays];
     allSessions.forEach(s => {
       if (s && s.bets) {
         s.bets.forEach(b => {
+          const bDateIso = b.date || '';
+          const bDayOnly = bDateIso.slice(0, 10);
+
+          // Se non è impostato un filtro date manuale, applica eventuale reset Gran Totale
+          if (!fromVal && !toVal && grandTotalResetAt && bDateIso < grandTotalResetAt) {
+            return;
+          }
+          if (fromVal && bDayOnly < fromVal) return;
+          if (toVal && bDayOnly > toVal) return;
+          if (projFilter && b.projectId !== projFilter) return;
+
           grandStake += (parseFloat(b.totalStake) || 0);
           grandNet += calcBetResult(b).net;
         });
@@ -1301,6 +1684,7 @@
     editingBetId = bet.id;
     document.getElementById('matchInput').value = bet.match;
     document.getElementById('marketInput').value = bet.market;
+    document.getElementById('betProjectSelect').value = bet.projectId || '';
     
     activeEntries = bet.entries.map((item, i) => ({
       ...item,
@@ -1371,6 +1755,8 @@
       totReturn += (s * o);
     });
 
+    const selectedProjectId = document.getElementById('betProjectSelect').value || '';
+
     if (editingBetId) {
       const session = getSelectedSession();
       if (session) {
@@ -1378,6 +1764,7 @@
         if (bIndex !== -1) {
           session.bets[bIndex].match = document.getElementById('matchInput').value.trim() || 'Match Senza Nome';
           session.bets[bIndex].market = document.getElementById('marketInput').value.trim() || 'Esito';
+          session.bets[bIndex].projectId = selectedProjectId;
           session.bets[bIndex].totalStake = totStake;
           session.bets[bIndex].weightedOdds = totStake > 0 ? (totReturn / totStake) : 0;
           session.bets[bIndex].totalReturn = totReturn;
@@ -1391,6 +1778,7 @@
         date: new Date().toISOString(),
         match: document.getElementById('matchInput').value.trim() || 'Match Senza Nome',
         market: document.getElementById('marketInput').value.trim() || 'Esito',
+        projectId: selectedProjectId,
         totalStake: totStake,
         weightedOdds: totStake > 0 ? (totReturn / totStake) : 0,
         totalReturn: totReturn,
@@ -1414,6 +1802,7 @@
     document.getElementById('fastMarket').value = '';
     document.getElementById('fastTotStake').value = '';
     document.getElementById('fastTotOdds').value = '';
+    populateAllProjectSelects();
     renderFastAccountSelector();
     updateFastPreview();
     document.getElementById('fastBetModal').style.display = 'flex';
@@ -1471,6 +1860,7 @@
     const market = document.getElementById('fastMarket').value.trim() || 'Esito Rapido';
     const stake = parseFloat(document.getElementById('fastTotStake').value) || 0;
     const odds = parseFloat(document.getElementById('fastTotOdds').value) || 0;
+    const projectId = document.getElementById('fastProjectSelect').value || '';
 
     if (stake <= 0) return alert("Inserisci un importo totale valido!");
     if (odds <= 0) return alert("Inserisci una quota valida!");
@@ -1499,6 +1889,7 @@
       date: new Date().toISOString(),
       match: match,
       market: market,
+      projectId: projectId,
       totalStake: stake,
       weightedOdds: odds,
       totalReturn: stake * odds,
@@ -1605,6 +1996,7 @@
       const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       const isExpanded = (expandedCardId === b.id);
       const res = calcBetResult(b);
+      const proj = getProjectById(b.projectId);
 
       const card = document.createElement('div');
       card.className = `today-card ${isExpanded ? 'expanded' : ''} ${res.outcome !== 'pending' ? 'status-' + res.outcome : ''}`;
@@ -1618,6 +2010,10 @@
       } else if (res.outcome === 'void') {
         resultHtml = `<span class="outcome-result-box res-void">€ ${res.payout.toFixed(2)} (Rimb.)</span>`;
       }
+
+      const projHtml = proj
+        ? `<span class="project-badge" onclick="quickCycleBetProject(${b.id}, event)" title="Clicca per cambiare progetto" style="background:${proj.color}28; color:${proj.color}; border-color:${proj.color}66;">📁 ${proj.name}</span>`
+        : `<span class="project-badge" onclick="quickCycleBetProject(${b.id}, event)" title="Assegna a un progetto" style="background:transparent; color:var(--text-muted); border-style:dashed;">+ Progetto</span>`;
 
       let accountsRows = b.entries.map(e => `
         <div class="acc-detail-row">
@@ -1640,7 +2036,10 @@
             <button class="btn-del" onclick="deleteSingleBet(${b.id}, event)" title="Elimina bettata" style="font-size:13px; padding:0 2px;">🗑️</button>
           </div>
         </div>
-        <div style="font-size:11px; color:var(--accent-primary);">${b.market}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+          <span style="font-size:11px; color:var(--accent-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${b.market}</span>
+          ${projHtml}
+        </div>
         <div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:800; font-size:12px;">
           <span style="color:#10b981;">€ ${b.totalStake.toFixed(2)}</span>
           <span style="color:#eab308;">@ ${b.weightedOdds.toFixed(2)}</span>
@@ -1676,6 +2075,8 @@
   function exportDataJson() {
     const exportBundle = {
       configRooms,
+      configProjects,
+      grandTotalResetAt,
       archivedDays,
       activeSession,
       currentTheme,
@@ -1705,11 +2106,16 @@
         const imported = JSON.parse(e.target.result);
         if (!imported) throw new Error("File vuoto");
 
-        if (confirm("Caricare questo backup? Sostituirà la configurazione, i conti e ripristinerà tutte le bettate.")) {
+        if (confirm("Caricare questo backup? Sostituirà la configurazione, i progetti, i conti e ripristinerà tutte le bettate.")) {
           if (imported.configRooms && Array.isArray(imported.configRooms)) {
             configRooms = imported.configRooms;
           }
-
+          if (imported.configProjects && Array.isArray(imported.configProjects)) {
+            configProjects = imported.configProjects;
+          }
+          if (imported.grandTotalResetAt !== undefined) {
+            grandTotalResetAt = imported.grandTotalResetAt;
+          }
           if (imported.currentTheme) {
             setAppTheme(imported.currentTheme);
           }
@@ -1743,6 +2149,7 @@
 
           saveAll();
           renderRooms();
+          populateAllProjectSelects();
           updateSessionControls();
           renderDaySelector();
           renderTodayFeed();
@@ -1765,13 +2172,14 @@
       alert("Nessuna bettata nella giornata selezionata da esportare in CSV!");
       return;
     }
-    let csv = "Giornata;DataOra;Tipo;Match;Pronostico;ImportoTotale;QuotaPonderata;Esito;Incasso;BilancioNetto;DettaglioConti\n";
+    let csv = "Giornata;DataOra;Progetto;Tipo;Match;Pronostico;ImportoTotale;QuotaPonderata;Esito;Incasso;BilancioNetto;DettaglioConti\n";
     session.bets.forEach(b => {
       const tipo = b.isFast ? 'FAST' : 'STANDARD';
+      const proj = getProjectById(b.projectId)?.name || '';
       const res = calcBetResult(b);
       const esitoLbl = res.outcome === 'win' ? 'VINCENTE' : (res.outcome === 'loss' ? 'PERDENTE' : (res.outcome === 'void' ? 'RIMBORSATA' : 'IN ATTESA'));
       const contiStr = b.entries.map(e => `${e.account}(${e.stake}€@${e.odds})`).join(" | ");
-      csv += `"${session.dateLabel}";"${b.date}";"${tipo}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${esitoLbl}";"${res.payout.toFixed(2)}";"${res.net.toFixed(2)}";"${contiStr}"\n`;
+      csv += `"${session.dateLabel}";"${b.date}";"${proj}";"${tipo}";"${b.match}";"${b.market}";"${b.totalStake}";"${b.weightedOdds.toFixed(2)}";"${esitoLbl}";"${res.payout.toFixed(2)}";"${res.net.toFixed(2)}";"${contiStr}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -1808,6 +2216,7 @@
 
     session.bets.forEach((b, index) => {
       const res = calcBetResult(b);
+      const proj = getProjectById(b.projectId);
       dayTotalStake += b.totalStake;
       dayTotalPayout += res.payout;
       dayTotalNet += res.net;
@@ -1819,13 +2228,14 @@
 
       const time = new Date(b.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       const esitoTag = res.outcome === 'win' ? '[VINTA]' : (res.outcome === 'loss' ? '[PERSA]' : (res.outcome === 'void' ? '[RIMBORSATA]' : '[IN ATTESA]'));
+      const projTag = proj ? `(${proj.name}) ` : '';
       doc.setFillColor(241, 245, 249);
       doc.rect(14, startY, 182, 8, 'F');
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       const tag = b.isFast ? '[FAST] ' : '';
-      doc.text(`#${index + 1}  ${tag}${b.match} - [${b.market}] (${time})  ${esitoTag}`, 16, startY + 5.5);
+      doc.text(`#${index + 1}  ${tag}${projTag}${b.match} - [${b.market}] (${time})  ${esitoTag}`, 16, startY + 5.5);
 
       startY += 10;
 
